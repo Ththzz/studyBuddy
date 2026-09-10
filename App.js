@@ -7,11 +7,21 @@ import ProfileSetupScreen from './src/screens/profileSetupScreen'
 import GoalSetupScreen from './src/screens/goalSetupScreen'
 import HomeScreen from './src/screens/homeScreen'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import SetupCompleteScreen from './src/screens/setupCompleteScreen'
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('welcome')
   const [verificationEmail, setVerificationEmail] = useState('')
   const [profileName, setProfileName] = useState('Alex')
+  const [goalData, setGoalData] = useState({
+    dailyTargetMinutes: 120,
+    studyDays: [0,1,2,3,4],
+    subjects: [
+      'Computer Networks',
+      'Database',
+      'Artificial Intelligence'
+    ]
+  })
   let screenContent
 
   if (currentScreen === 'home') {
@@ -38,13 +48,22 @@ export default function App() {
         onResend={() => console.log('Resend verification code')}
       />
     )
+  } else if (currentScreen == 'complete'){
+    screenContent = (
+      <SetupCompleteScreen
+        dailyTargetMinutes={goalData.dailyTargetMinutes}
+        onStartStudying={() => setCurrentScreen('home')}
+      />
+    )
+
   } else if (currentScreen === 'goal') {
     screenContent = (
       <GoalSetupScreen
         onBack={() => setCurrentScreen('profile')}
-        onFinish={(goalData) => {
-          console.log('Goal setup complete', goalData)
-          setCurrentScreen('home')
+        onFinish={(newGoalData) => {
+          console.log('Goal setup complete', newGoalData)
+          setGoalData(newGoalData)
+          setCurrentScreen('complete')
         }}
       />
     )
