@@ -5,12 +5,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import LineIcon from '../components/lineIcon';
 import styles from '../styles/homeScreenStyles';
 
-function ProgressRing() {
+function ProgressRing({ value, label }) {
   return (
     <View style={styles.ring}>
       <View style={styles.ringInner}>
-        <Text style={styles.ringValue}>1h 25m</Text>
-        <Text style={styles.ringLabel}>of 2h goal</Text>
+        <Text style={styles.ringValue}>{value}</Text>
+        <Text style={styles.ringLabel}>{label}</Text>
       </View>
     </View>
   );
@@ -117,6 +117,10 @@ function HomeNavItem({ onPress }) {
 
 export default function HomeScreen({
   userName = 'Alex',
+  todayStudyLabel = '1h 25m',
+  dailyGoalLabel = 'of 2h goal',
+  todayRemainingLabel = '35 min left',
+  todaySessionCount = 3,
   onNotifications,
   onStartFocus,
   onViewStudy,
@@ -170,11 +174,11 @@ export default function HomeScreen({
 
         <View style={styles.progressCard}>
           <Text style={styles.eyebrow}>Today’s progress</Text>
-          <ProgressRing />
+          <ProgressRing value={todayStudyLabel} label={dailyGoalLabel} />
 
           <View style={styles.leftLabel}>
             <LineIcon name="clock" size={14} color="#438C31" />
-            <Text style={styles.leftLabelText}>35 min left</Text>
+            <Text style={styles.leftLabelText}>{todayRemainingLabel}</Text>
           </View>
 
           <Pressable
@@ -199,7 +203,7 @@ export default function HomeScreen({
 
         <View style={styles.summaryGrid}>
           <StatCard icon="🔥" value="7 days" label="Study streak" />
-          <StatCard icon="◷" value="3" label="Sessions today" />
+          <StatCard icon="◷" value={String(todaySessionCount)} label="Sessions today" />
           <StatCard icon="✦" value="82%" label="Quiz average" />
         </View>
 

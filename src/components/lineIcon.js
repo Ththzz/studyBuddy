@@ -10,6 +10,10 @@ const ICON_PATHS = {
   bell: 'M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 22h4',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-14v5l3 2',
   check: 'm5 12 4 4L19 6',
+  back: 'm15 18-6-6 6-6',
+  pause: 'M8 5v14M16 5v14',
+  play: 'm9 5 10 7-10 7V5Z',
+  stop: 'M6 6h12v12H6z',
 };
 
 export default function LineIcon({
