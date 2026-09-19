@@ -12,6 +12,12 @@ import SetupCompleteScreen from './src/screens/setupCompleteScreen'
 import StudyTimerScreen from './src/screens/studyTimeScreen'
 import SessionCompleteScreen from './src/screens/sessionCompleteScreen'
 import StudyHistoryScreen from './src/screens/studyHistoryScreen'
+import SubjectSelectionScreen from './src/screens/subjectSelectionScreen'
+import AnalyticsScreen from './src/screens/analyticsScreen'
+import QuizUploadScreen from './src/screens/quizUploadScreen'
+import QuizSessionScreen from './src/screens/quizSessionScreen'
+import QuizResultScreen from './src/screens/quizResultScreen'
+import FlashcardsScreen from './src/screens/flashcardsScreen'
 import { loadStudySessions, saveStudySessions } from './src/storage/studySessionStorage'
 
 const STORAGE_LOAD_ERROR_MESSAGE = "We couldn't load your saved study sessions. Please try again."
@@ -86,10 +92,12 @@ function getTodayMetrics(sessions, dailyTargetMinutes) {
     ? Math.max(1, Math.floor(numericTargetMinutes * 60))
     : 1
   const remainingSeconds = Math.max(0, targetSeconds - studySeconds)
-  const progressPercent = Math.min(100, Math.round((studySeconds / targetSeconds) * 100))
+  const progressPercent = Math.min(100, Math.floor((studySeconds / targetSeconds) * 100))
 
   return {
     sessionCount: todaySessions.length,
+    studySeconds,
+    targetSeconds,
     studyLabel: formatStudyDuration(studySeconds),
     goalLabel: `of ${formatStudyDuration(targetSeconds)} goal`,
     remainingLabel: remainingSeconds > 0 ? `${formatStudyDuration(remainingSeconds)} left` : 'Goal reached',
@@ -116,6 +124,10 @@ export default function App() {
   const [studySessions, setStudySessions] = useState([])
   const [sessionsLoadState, setSessionsLoadState] = useState('loading')
   const [sessionsLoadError, setSessionsLoadError] = useState(null)
+  const [selectedSubjectName, setSelectedSubjectName] = useState('')
+  const [subjectSelectionReturnScreen, setSubjectSelectionReturnScreen] = useState('home')
+  const [quizConfig, setQuizConfig] = useState(null)
+  const [quizResult, setQuizResult] = useState(null)
   const isSessionsMountedRef = useRef(true)
 
   const loadSessions = useCallback(async () => {
@@ -169,9 +181,11 @@ export default function App() {
   const todayMetrics = getTodayMetrics(studySessions, goalData.dailyTargetMinutes)
   const sessionsReady = sessionsLoadState === 'ready'
 
-  const handleStartStudy = () => {
+  const handleStartStudy = (returnScreen = 'home') => {
     if (sessionsReady) {
-      setCurrentScreen('timer')
+      setSelectedSubjectName('')
+      setSubjectSelectionReturnScreen(returnScreen)
+      setCurrentScreen('subject-selection')
       return
     }
 
@@ -189,6 +203,14 @@ export default function App() {
           { text: 'Open History', onPress: () => setCurrentScreen('study-history') },
         ],
     )
+  }
+
+  const handleSubjectContinue = (subjectName) => {
+    const safeSubjectName = typeof subjectName === 'string' ? subjectName.trim() : ''
+    if (!safeSubjectName || !sessionsReady) return
+
+    setSelectedSubjectName(safeSubjectName)
+    setCurrentScreen('timer')
   }
 
   let screenContent
@@ -213,7 +235,66 @@ export default function App() {
     setCurrentScreen('session-complete')
   }
 
-  if (currentScreen === 'study-history') {
+  if (currentScreen === 'quiz-upload') {
+    screenContent = (
+      <QuizUploadScreen
+        onBack={() => setCurrentScreen('home')}
+        onGenerate={(nextQuizConfig) => {
+          setQuizConfig(nextQuizConfig)
+          setCurrentScreen('quiz-session')
+        }}
+      />
+    )
+  } else if (currentScreen === 'flashcards') {
+    screenContent = (
+      <FlashcardsScreen
+        onBack={() => setCurrentScreen('home')}
+        onStudyDeck={(deck) => {
+          Alert.alert(
+            'Study Cards',
+            `${deck.name} is ready. The card-by-card study screen is the next step.`,
+            [{ text: 'OK' }],
+          )
+        }}
+        onCreateDeck={() => {
+          Alert.alert(
+            'Create Flashcards',
+            'Deck creation from notes will be connected in the next step.',
+            [{ text: 'OK' }],
+          )
+        }}
+      />
+    )
+  } else if (currentScreen === 'quiz-session') {
+    screenContent = (
+      <QuizSessionScreen
+        config={quizConfig}
+        onExit={() => setCurrentScreen('home')}
+        onComplete={(result) => {
+          setQuizResult(result)
+          setCurrentScreen('quiz-result')
+        }}
+      />
+    )
+  } else if (currentScreen === 'quiz-result') {
+    screenContent = (
+      <QuizResultScreen
+        result={quizResult}
+        config={quizConfig}
+        onReviewAnswers={() => setCurrentScreen('quiz-session')}
+        onTryAgain={() => setCurrentScreen('quiz-session')}
+        onBack={() => setCurrentScreen('home')}
+      />
+    )
+  } else if (currentScreen === 'subject-selection') {
+    screenContent = (
+      <SubjectSelectionScreen
+        subjects={goalData.subjects}
+        onBack={() => setCurrentScreen(subjectSelectionReturnScreen)}
+        onContinue={handleSubjectContinue}
+      />
+    )
+  } else if (currentScreen === 'study-history') {
     screenContent = (
       <StudyHistoryScreen
         sessions={studySessions}
@@ -224,22 +305,32 @@ export default function App() {
         onBack={() => setCurrentScreen('home')}
       />
     )
+  } else if (currentScreen === 'analytics') {
+    screenContent = (
+      <AnalyticsScreen
+        sessions={studySessions}
+        sessionsLoadState={sessionsLoadState}
+        sessionsLoadError={sessionsLoadError}
+        dailyTargetMinutes={goalData.dailyTargetMinutes}
+        todayMetrics={todayMetrics}
+        onRetry={loadSessions}
+        onBack={() => setCurrentScreen('home')}
+      />
+    )
   } else if (currentScreen === 'session-complete') {
     screenContent = (
       <SessionCompleteScreen
         sessionData={sessionResult}
         onDone={() => setCurrentScreen('home')}
-        onStartAnother={handleStartStudy}
+        onStartAnother={() => handleStartStudy('session-complete')}
       />
     )} else if (currentScreen === 'timer') {
     screenContent = (
       <StudyTimerScreen
-        subjectName="Computer Networks"
+        subjectName={selectedSubjectName || 'General Study'}
         initialMinutes={25}
-        todayStudyLabel={todayMetrics.studyLabel}
-        dailyGoalLabel={todayMetrics.goalLabel}
-        todayRemainingLabel={todayMetrics.remainingLabel}
-        todayProgressPercent={todayMetrics.progressPercent}
+        todayStudySeconds={todayMetrics.studySeconds}
+        dailyTargetSeconds={todayMetrics.targetSeconds}
         onBack={() => setCurrentScreen('home')}
         onFinish={handleSessionFinish}
       />
@@ -251,12 +342,12 @@ export default function App() {
         todayRemainingLabel={todayMetrics.remainingLabel}
         todaySessionCount={todayMetrics.sessionCount}
         onNotifications={() => console.log('Open notifications')}
-        onStartFocus={handleStartStudy}
+        onStartFocus={() => handleStartStudy('home')}
         onViewStudy={() => setCurrentScreen('study-history')}
-        onGenerateQuiz={() => console.log('Generate quiz')}
-        onFlashcards={() => console.log('Open flashcards')}
+        onGenerateQuiz={() => setCurrentScreen('quiz-upload')}
+        onFlashcards={() => setCurrentScreen('flashcards')}
         onQuickQA={() => console.log('Open quick Q&A')}
-        onAnalytics={() => console.log('Open analytics')}
+        onAnalytics={() => setCurrentScreen('analytics')}
       />
     )
   } else if (currentScreen === 'verification') {

@@ -193,7 +193,7 @@ export default function HomeScreen({
           </Pressable>
 
           <Text style={styles.sessionDescription}>
-            Continue your Computer Networks session
+            Choose a subject and start a focused session
           </Text>
         </View>
 

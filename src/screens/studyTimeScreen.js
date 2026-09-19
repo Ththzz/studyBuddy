@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { AppState, Pressable, ScrollView, Text, View } from 'react-native'
+import { Alert, AppState, Pressable, ScrollView, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
@@ -49,6 +49,20 @@ function formatDurationLabel(totalSeconds) {
   ]
     .filter(Boolean)
     .join(' ')
+}
+
+function toSafeSeconds(value, fallback = 0) {
+  let numericValue
+
+  try {
+    numericValue = Number(value)
+  } catch (error) {
+    return fallback
+  }
+
+  return Number.isFinite(numericValue)
+    ? Math.max(0, Math.floor(numericValue))
+    : fallback
 }
 
 function WheelPicker({ label, value, maxValue, onChange, accessibilityLabel }) {
@@ -115,10 +129,17 @@ function WheelPicker({ label, value, maxValue, onChange, accessibilityLabel }) {
 function ProgressRing({ progress, showProgress = true, children }) {
   const radius = (RING_SIZE - STROKE_WIDTH) / 2
   const circumference = 2 * Math.PI * radius
-  const safeProgress = Math.max(0, Math.min(progress, 100))
+  const numericProgress = Number(progress)
+  const safeProgress = Number.isFinite(numericProgress)
+    ? Math.max(0, Math.min(numericProgress, 100))
+    : 0
 
   return (
-    <View style={styles.timerCircle} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(safeProgress) }}>
+    <View
+      style={styles.timerCircle}
+      accessibilityRole={showProgress ? 'progressbar' : undefined}
+      accessibilityValue={showProgress ? { min: 0, max: 100, now: Math.round(safeProgress) } : undefined}
+    >
       <Svg width={RING_SIZE} height={RING_SIZE} style={styles.timerSvg}>
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={radius} fill="none" stroke="#E7EEE3" strokeWidth={STROKE_WIDTH} />
         <Circle
@@ -144,10 +165,8 @@ function ProgressRing({ progress, showProgress = true, children }) {
 export default function StudyTimerScreen({
   subjectName = 'Computer Networks',
   initialMinutes = 25,
-  todayStudyLabel = '0m',
-  dailyGoalLabel = 'of 2h goal',
-  todayRemainingLabel = '2h left',
-  todayProgressPercent = 0,
+  todayStudySeconds = 0,
+  dailyTargetSeconds = 120 * 60,
   onBack,
   onFinish,
 }) {
@@ -163,6 +182,8 @@ export default function StudyTimerScreen({
   const [customMinutes, setCustomMinutes] = useState(initialParts.minutes)
   const [customSeconds, setCustomSeconds] = useState(initialParts.seconds)
   const [customError, setCustomError] = useState('')
+  const dailyGoalAlertShownRef = useRef(false)
+  const dailyGoalAlertOpenRef = useRef(false)
   const timerRef = useRef({
     mode: 'countdown',
     durationSeconds: initialDurationSeconds,
@@ -180,9 +201,21 @@ export default function StudyTimerScreen({
   const isFresh = isCountdown ? remainingSeconds === totalSeconds : elapsedSeconds === 0
   const progress = totalSeconds ? (remainingSeconds / totalSeconds) * 100 : 0
   const isCustom = !PRESETS.some((minutes) => minutes * 60 === selectedDurationSeconds)
-  const safeDailyProgressPercent = Number.isFinite(Number(todayProgressPercent))
-    ? Math.max(0, Math.min(100, Math.round(Number(todayProgressPercent))))
-    : 0
+  const safeTodayStudySeconds = toSafeSeconds(todayStudySeconds)
+  const safeDailyTargetSeconds = Math.max(1, toSafeSeconds(dailyTargetSeconds, 120 * 60))
+  const currentSessionElapsedSeconds = elapsedSeconds
+  const liveStudySeconds = safeTodayStudySeconds + currentSessionElapsedSeconds
+  const liveDailyProgressPercent = Math.max(
+    0,
+    Math.min(100, (liveStudySeconds / safeDailyTargetSeconds) * 100),
+  )
+  const displayedDailyProgressPercent = Math.floor(liveDailyProgressPercent)
+  const liveRemainingSeconds = Math.max(0, safeDailyTargetSeconds - liveStudySeconds)
+  const liveStudyLabel = formatDurationLabel(liveStudySeconds)
+  const liveDailyGoalLabel = `of ${formatDurationLabel(safeDailyTargetSeconds)} goal`
+  const liveRemainingLabel = liveRemainingSeconds > 0
+    ? `${formatDurationLabel(liveRemainingSeconds)} left`
+    : 'Goal reached'
 
   useEffect(() => {
     onFinishRef.current = onFinish
@@ -217,7 +250,12 @@ export default function StudyTimerScreen({
 
   const syncTimer = (now = Date.now()) => {
     const timing = timerRef.current
-    const elapsedSecondsFromClock = Math.floor(getElapsedMilliseconds(now) / 1000)
+    const elapsedMilliseconds = getElapsedMilliseconds(now)
+    const elapsedSecondsFromClock = Math.floor(elapsedMilliseconds / 1000)
+
+    setElapsedSeconds((current) => (
+      current === elapsedSecondsFromClock ? current : elapsedSecondsFromClock
+    ))
 
     if (timing.mode === 'countdown') {
       const nextRemainingSeconds = Math.max(
@@ -239,11 +277,44 @@ export default function StudyTimerScreen({
         timing.isRunning = false
         setIsRunning(false)
         emitFinish(timing.durationSeconds, true, timing.mode)
+        return
       }
-    } else {
-      setElapsedSeconds((current) => (
-        current === elapsedSecondsFromClock ? current : elapsedSecondsFromClock
-      ))
+    }
+
+    if (
+      timing.isRunning
+      && !dailyGoalAlertShownRef.current
+      && safeTodayStudySeconds + elapsedSecondsFromClock >= safeDailyTargetSeconds
+    ) {
+      timing.accumulatedMs = elapsedMilliseconds
+      timing.startedAtMs = null
+      timing.isRunning = false
+      dailyGoalAlertShownRef.current = true
+      dailyGoalAlertOpenRef.current = true
+      setIsRunning(false)
+
+      Alert.alert(
+        'Daily goal reached',
+        `You reached your ${formatDurationLabel(safeDailyTargetSeconds)} daily goal. What would you like to do?`,
+        [
+          {
+            text: 'End Session',
+            style: 'destructive',
+            onPress: () => {
+              dailyGoalAlertOpenRef.current = false
+              finishSession()
+            },
+          },
+          {
+            text: 'Continue Studying',
+            onPress: () => {
+              dailyGoalAlertOpenRef.current = false
+              beginTimer()
+            },
+          },
+        ],
+        { cancelable: false },
+      )
     }
   }
 
@@ -313,6 +384,7 @@ export default function StudyTimerScreen({
   const openCustomEditor = () => {
     if (timerRef.current.isRunning) {
       pauseTimer()
+      if (dailyGoalAlertOpenRef.current) return
     }
 
     const currentParts = getDurationParts(selectedDurationSeconds)
@@ -328,15 +400,49 @@ export default function StudyTimerScreen({
     setCustomError('')
   }
 
-  const startTimer = () => {
+  const beginTimer = () => {
     const timing = timerRef.current
-    if (timing.isRunning || timing.finishSent) return
+    if (timing.isRunning || timing.finishSent || dailyGoalAlertOpenRef.current) return
 
     const now = Date.now()
     timing.startedAtMs = now
     timing.isRunning = true
     setIsRunning(true)
     syncTimer(now)
+  }
+
+  const startTimer = () => {
+    const timing = timerRef.current
+    if (timing.isRunning || timing.finishSent || dailyGoalAlertOpenRef.current) return
+
+    if (!dailyGoalAlertShownRef.current && safeTodayStudySeconds >= safeDailyTargetSeconds) {
+      dailyGoalAlertOpenRef.current = true
+      Alert.alert(
+        'Daily goal already reached',
+        'You have already completed today\'s study goal. Would you like to keep studying?',
+        [
+          {
+            text: 'Not Now',
+            style: 'cancel',
+            onPress: () => {
+              dailyGoalAlertOpenRef.current = false
+            },
+          },
+          {
+            text: 'Continue Studying',
+            onPress: () => {
+              dailyGoalAlertOpenRef.current = false
+              dailyGoalAlertShownRef.current = true
+              beginTimer()
+            },
+          },
+        ],
+        { cancelable: false },
+      )
+      return
+    }
+
+    beginTimer()
   }
 
   const pauseTimer = () => {
@@ -394,7 +500,7 @@ export default function StudyTimerScreen({
   const status = isRunning ? 'In progress' : isFresh ? 'Ready to start' : 'Paused'
   const focusProgressStyle = [
     styles.miniProgressFill,
-    { width: `${safeDailyProgressPercent}%` },
+    { width: `${liveDailyProgressPercent}%` },
   ]
   const modeHint = isRunning
     ? 'Pause before changing timer mode.'
@@ -564,15 +670,25 @@ export default function StudyTimerScreen({
             <View style={styles.focusHeader}>
               <Text style={styles.focusTitle}>Today’s focus</Text>
               <Text style={styles.focusSummary}>
-                {todayStudyLabel} {dailyGoalLabel}
+                {liveStudyLabel} {liveDailyGoalLabel}
               </Text>
             </View>
-            <View style={styles.miniProgress}>
+            <View
+              style={styles.miniProgress}
+              accessibilityRole="progressbar"
+              accessibilityLabel="Today's study goal progress"
+              accessibilityValue={{
+                min: 0,
+                max: 100,
+                now: displayedDailyProgressPercent,
+                text: `${displayedDailyProgressPercent}%`,
+              }}
+            >
               <View style={focusProgressStyle} />
             </View>
             <View style={styles.focusFooter}>
-              <Text style={styles.focusFooterText}>{todayRemainingLabel}</Text>
-              <Text style={styles.focusFooterText}>{safeDailyProgressPercent}%</Text>
+              <Text style={styles.focusFooterText}>{liveRemainingLabel}</Text>
+              <Text style={styles.focusFooterText}>{displayedDailyProgressPercent}%</Text>
             </View>
           </View>
         </View>

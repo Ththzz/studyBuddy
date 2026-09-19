@@ -14,6 +14,12 @@ const ICON_PATHS = {
   pause: 'M8 5v14M16 5v14',
   play: 'm9 5 10 7-10 7V5Z',
   stop: 'M6 6h12v12H6z',
+  upload: 'M12 16V4m0 0L7 9m5-5 5 5M5 15v4h14v-4',
+  plus: 'M12 5v14M5 12h14',
+  x: 'M6 6l12 12M18 6 6 18',
+  chevron: 'm9 6 6 6-6 6',
+  spark: 'm12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3Z M19 16l.6 2.4L22 19l-2.4.6L19 22l-.6-2.4L16 19l2.4-.6L19 16Z',
+  search: 'm21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4Z',
 };
 
 export default function LineIcon({
