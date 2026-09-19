@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState} from "react";
 import {
     Animated,
+    Image,
     Text,
     Pressable,
     View,
@@ -92,14 +93,14 @@ export default function WelcomeScreen({ onGetStarted, onLogin }) {
             <View style={styles.container}>
                 {/* Logo */}
                 <View style={styles.logoRow}>
-                    <View style={styles.logo}>
-                        <Text style={styles.logoText}>S</Text>
-                    </View>
-
-                    <View>
-                        <Text style={styles.brandName}>Study Buddy</Text>
-                        <Text style={styles.subtitle}>Focus smarter, together ^_^</Text>
-                    </View>
+                    <Image
+                        source={require('../../assets/logo-welcome-crisp.png')}
+                        style={styles.brandLogo}
+                        resizeMode="contain"
+                        fadeDuration={0}
+                        accessibilityRole="image"
+                        accessibilityLabel="Study Buddy"
+                    />
                 </View>
                 {/* Illustration */}
                 <View style={styles.illustration}>
@@ -128,7 +129,6 @@ export default function WelcomeScreen({ onGetStarted, onLogin }) {
 
                 {/* Main text */}
                 <Text style={styles.title}>Make every study session count</Text>
-                <Text style={styles.description}>Track your focus, practice what you learn, and build better.</Text>
                  
                  {/* Buttons */}
                  <View style={styles.buttonContainer}>
@@ -158,9 +158,6 @@ export default function WelcomeScreen({ onGetStarted, onLogin }) {
                     </View>
                  </View>
 
-                 <Text style={styles.footer}>
-                    Your progress stays yours.
-                 </Text>
             </View>
         </SafeAreaView>
     );

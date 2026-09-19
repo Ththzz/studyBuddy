@@ -74,6 +74,9 @@ export default function QuizResultScreen({
         style={styles.flex}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.resultHero}>
           <View style={styles.scoreCircle}>

@@ -93,6 +93,9 @@ export default function SubjectSelectionScreen({ subjects, onBack, onContinue })
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.header}>
           <Pressable

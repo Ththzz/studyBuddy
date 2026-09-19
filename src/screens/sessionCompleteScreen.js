@@ -44,6 +44,9 @@ export default function SessionCompleteScreen({
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.completeScreen}>
           <View style={styles.successBurst}>

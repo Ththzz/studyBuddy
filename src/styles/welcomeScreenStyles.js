@@ -15,49 +15,15 @@ const styles = StyleSheet.create({
     },
   
     logoRow: {
-      flexDirection: 'row',
+      width: '100%',
       alignItems: 'center',
+      justifyContent: 'center',
       marginTop: 24,
     },
   
-    logo: {
-      width: 48,
-      height: 48,
-      borderRadius: 15,
-      backgroundColor: '#76C457',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-  
-      // เงาสำหรับ iOS
-      shadowColor: '#152914',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.08,
-      shadowRadius: 5,
-  
-      // เงาสำหรับ Android
-      elevation: 2,
-    },
-  
-    logoText: {
-      color: '#FFFFFF',
-      fontSize: 22,
-      fontWeight: '800',
-    },
-  
-    brandName: {
-      color: '#151A15',
-      fontSize: 19,
-      fontWeight: '700',
-    },
-  
-    subtitle: {
-      color: '#697269',
-      fontSize: 13,
-      marginTop: 3,
+    brandLogo: {
+      width: 200,
+      height: 76,
     },
   
     illustration: {
@@ -144,18 +110,9 @@ const styles = StyleSheet.create({
       marginTop: 18,
     },
   
-    description: {
-      maxWidth: 330,
-      color: '#697269',
-      fontSize: 15,
-      lineHeight: 22,
-      textAlign: 'center',
-      marginTop: 12,
-    },
-  
     buttonContainer: {
       width: '100%',
-      marginTop: 30,
+      marginTop: 28,
     },
   
     primaryButton: {
@@ -206,12 +163,6 @@ const styles = StyleSheet.create({
       transform: [{ scale: 0.96 }],
     },
   
-    footer: {
-      color: '#697269',
-      fontSize: 13,
-      marginTop: 22,
-    },
-
     emoji: {
         fontSize: 52,
       },
@@ -219,4 +170,3 @@ const styles = StyleSheet.create({
   });
 
 export default styles;
-

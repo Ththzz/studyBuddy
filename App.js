@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert } from 'react-native'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Alert, Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-native'
+import { Asset } from 'expo-asset'
+import * as SplashScreen from 'expo-splash-screen'
 import WelcomeScreen from './src/screens/welcomeScreen'
 import SignUpScreen from './src/screens/signUpScreen'
 import LoginScreen from './src/screens/loginScreen'
@@ -18,9 +20,24 @@ import QuizUploadScreen from './src/screens/quizUploadScreen'
 import QuizSessionScreen from './src/screens/quizSessionScreen'
 import QuizResultScreen from './src/screens/quizResultScreen'
 import FlashcardsScreen from './src/screens/flashcardsScreen'
+import StudyCardsScreen from './src/screens/studyCardsScreen'
 import { loadStudySessions, saveStudySessions } from './src/storage/studySessionStorage'
 
 const STORAGE_LOAD_ERROR_MESSAGE = "We couldn't load your saved study sessions. Please try again."
+const WELCOME_LOGO_ASSET = require('./assets/logo-welcome-crisp.png')
+
+SplashScreen.preventAutoHideAsync().catch(() => {})
+
+const styles = StyleSheet.create({
+  transitionHost: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAF7',
+  },
+  screenTransition: {
+    flex: 1,
+  },
+})
 
 function formatStudyDuration(totalSeconds = 0) {
   let numericSeconds
@@ -108,6 +125,8 @@ function getTodayMetrics(sessions, dailyTargetMinutes) {
 
 
 export default function App() {
+  const { width: screenWidth } = useWindowDimensions()
+  const [isAppReady, setIsAppReady] = useState(false)
   const [currentScreen, setCurrentScreen] = useState('welcome')
   const [verificationEmail, setVerificationEmail] = useState('')
   const [profileName, setProfileName] = useState('Alex')
@@ -128,7 +147,35 @@ export default function App() {
   const [subjectSelectionReturnScreen, setSubjectSelectionReturnScreen] = useState('home')
   const [quizConfig, setQuizConfig] = useState(null)
   const [quizResult, setQuizResult] = useState(null)
+  const [selectedFlashcardDeck, setSelectedFlashcardDeck] = useState(null)
+  const screenTransition = useRef(new Animated.Value(1)).current
+  const hasAnimatedScreenRef = useRef(false)
   const isSessionsMountedRef = useRef(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const preloadWelcomeLogo = async () => {
+      try {
+        await Asset.loadAsync(WELCOME_LOGO_ASSET)
+      } catch (error) {
+        console.warn('Welcome logo could not be preloaded', error)
+      } finally {
+        if (isMounted) setIsAppReady(true)
+      }
+    }
+
+    void preloadWelcomeLogo()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isAppReady) return
+    void SplashScreen.hideAsync()
+  }, [isAppReady])
 
   const loadSessions = useCallback(async () => {
     setSessionsLoadState('loading')
@@ -177,6 +224,28 @@ export default function App() {
     if (sessionsLoadState !== 'ready') return
     void saveStudySessions(studySessions)
   }, [studySessions, sessionsLoadState])
+
+  useLayoutEffect(() => {
+    if (!hasAnimatedScreenRef.current) {
+      hasAnimatedScreenRef.current = true
+      return undefined
+    }
+
+    screenTransition.stopAnimation()
+    screenTransition.setValue(0)
+
+    const animation = Animated.timing(screenTransition, {
+      toValue: 1,
+      duration: 190,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+      isInteraction: false,
+    })
+
+    animation.start()
+
+    return () => animation.stop()
+  }, [currentScreen, screenTransition])
 
   const todayMetrics = getTodayMetrics(studySessions, goalData.dailyTargetMinutes)
   const sessionsReady = sessionsLoadState === 'ready'
@@ -245,16 +314,20 @@ export default function App() {
         }}
       />
     )
+  } else if (currentScreen === 'study-cards') {
+    screenContent = (
+      <StudyCardsScreen
+        deck={selectedFlashcardDeck}
+        onBack={() => setCurrentScreen('flashcards')}
+      />
+    )
   } else if (currentScreen === 'flashcards') {
     screenContent = (
       <FlashcardsScreen
         onBack={() => setCurrentScreen('home')}
         onStudyDeck={(deck) => {
-          Alert.alert(
-            'Study Cards',
-            `${deck.name} is ready. The card-by-card study screen is the next step.`,
-            [{ text: 'OK' }],
-          )
+          setSelectedFlashcardDeck(deck)
+          setCurrentScreen('study-cards')
         }}
         onCreateDeck={() => {
           Alert.alert(
@@ -341,6 +414,7 @@ export default function App() {
         dailyGoalLabel={todayMetrics.goalLabel}
         todayRemainingLabel={todayMetrics.remainingLabel}
         todaySessionCount={todayMetrics.sessionCount}
+        dailyProgressPercent={todayMetrics.progressPercent}
         onNotifications={() => console.log('Open notifications')}
         onStartFocus={() => handleStartStudy('home')}
         onViewStudy={() => setCurrentScreen('study-history')}
@@ -431,9 +505,25 @@ export default function App() {
     )
   }
 
+  const screenTranslateX = screenTransition.interpolate({
+    inputRange: [0, 1],
+    outputRange: [screenWidth, 0],
+  })
+
+  if (!isAppReady) return null
+
   return (
     <SafeAreaProvider>
-      {screenContent}
+      <View style={styles.transitionHost}>
+        <Animated.View
+          style={[
+            styles.screenTransition,
+            { transform: [{ translateX: screenTranslateX }] },
+          ]}
+        >
+          {screenContent}
+        </Animated.View>
+      </View>
     </SafeAreaProvider>
   )
 }

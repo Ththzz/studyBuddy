@@ -110,6 +110,9 @@ export default function QuizUploadScreen({ onBack, onGenerate }) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <Text style={styles.intro}>
           Turn your study materials into practice questions.

@@ -128,6 +128,9 @@ export default function FlashcardsScreen({ onBack, onStudyDeck, onCreateDeck }) 
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.searchBox}>
           <LineIcon name="search" size={18} color="#697269" />

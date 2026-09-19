@@ -75,9 +75,9 @@ import styles from '../styles/signUpScreenStyles';
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            bounces={false}
-            alwaysBounceVertical={false}
-            overScrollMode="never"
+            bounces
+            alwaysBounceVertical
+            overScrollMode="always"
           >
             <View style={styles.header}>
               <Pressable

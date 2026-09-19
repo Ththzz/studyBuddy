@@ -270,6 +270,9 @@ export default function AnalyticsScreen({
           style={styles.flex}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
         >
           <View style={styles.metricGrid}>
             <MetricCard iconName="clock" value={formatDuration(totalSeconds)} label="Total focus" />

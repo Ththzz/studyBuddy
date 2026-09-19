@@ -102,6 +102,9 @@ function WheelPicker({ label, value, maxValue, onChange, accessibilityLabel }) {
           style={styles.wheelScroll}
           contentContainerStyle={styles.wheelContent}
           showsVerticalScrollIndicator={false}
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
           snapToInterval={WHEEL_ITEM_HEIGHT}
           decelerationRate="fast"
           scrollEventThrottle={16}
@@ -517,6 +520,9 @@ export default function StudyTimerScreen({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.topbar}>
           <Pressable

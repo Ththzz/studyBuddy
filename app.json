@@ -20,10 +20,16 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/logo-welcome-crisp.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#F8FAF7",
           "imageWidth": 200
+        }
+      ],
+      [
+        "expo-asset",
+        {
+          "assets": ["./assets/logo-welcome-crisp.png"]
         }
       ]
     ]

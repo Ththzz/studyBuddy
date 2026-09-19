@@ -107,18 +107,18 @@ const styles = StyleSheet.create({
     width: 188,
     height: 188,
     marginBottom: 13,
-    borderWidth: 12,
-    borderColor: '#76C457',
-    borderLeftColor: '#E7EEE3',
-    borderRadius: 94,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
+  ringSvg: {
+    position: 'absolute',
+  },
+
   ringInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 94,
+    width: 164,
+    height: 164,
+    borderRadius: 82,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',

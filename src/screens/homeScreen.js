@@ -1,13 +1,62 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LineIcon from '../components/lineIcon';
 import styles from '../styles/homeScreenStyles';
 
-function ProgressRing({ value, label }) {
+const RING_SIZE = 188;
+const RING_STROKE_WIDTH = 12;
+const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+function ProgressRing({ value, label, progressPercent = 0 }) {
+  const numericProgress = Number(progressPercent);
+  const safeProgress = Number.isFinite(numericProgress)
+    ? Math.min(100, Math.max(0, numericProgress))
+    : 0;
+  const strokeDashoffset = RING_CIRCUMFERENCE * (1 - safeProgress / 100);
+
   return (
-    <View style={styles.ring}>
+    <View
+      style={styles.ring}
+      accessibilityRole="progressbar"
+      accessibilityLabel="Today's study goal progress"
+      accessibilityValue={{
+        min: 0,
+        max: 100,
+        now: Math.round(safeProgress),
+        text: `${Math.round(safeProgress)}%`,
+      }}
+    >
+      <Svg
+        width={RING_SIZE}
+        height={RING_SIZE}
+        style={styles.ringSvg}
+        pointerEvents="none"
+      >
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={RING_RADIUS}
+          fill="none"
+          stroke="#E7EEE3"
+          strokeWidth={RING_STROKE_WIDTH}
+        />
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={RING_RADIUS}
+          fill="none"
+          stroke="#76C457"
+          strokeWidth={RING_STROKE_WIDTH}
+          strokeLinecap="round"
+          strokeDasharray={RING_CIRCUMFERENCE}
+          strokeDashoffset={strokeDashoffset}
+          transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+        />
+      </Svg>
       <View style={styles.ringInner}>
         <Text style={styles.ringValue}>{value}</Text>
         <Text style={styles.ringLabel}>{label}</Text>
@@ -121,6 +170,7 @@ export default function HomeScreen({
   dailyGoalLabel = 'of 2h goal',
   todayRemainingLabel = '35 min left',
   todaySessionCount = 3,
+  dailyProgressPercent = 0,
   onNotifications,
   onStartFocus,
   onViewStudy,
@@ -143,9 +193,9 @@ export default function HomeScreen({
           { paddingBottom: 102 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
-        bounces={false}
-        alwaysBounceVertical={false}
-        overScrollMode="never"
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.homeHeader}>
           <View>
@@ -174,7 +224,11 @@ export default function HomeScreen({
 
         <View style={styles.progressCard}>
           <Text style={styles.eyebrow}>Today’s progress</Text>
-          <ProgressRing value={todayStudyLabel} label={dailyGoalLabel} />
+          <ProgressRing
+            value={todayStudyLabel}
+            label={dailyGoalLabel}
+            progressPercent={dailyProgressPercent}
+          />
 
           <View style={styles.leftLabel}>
             <LineIcon name="clock" size={14} color="#438C31" />

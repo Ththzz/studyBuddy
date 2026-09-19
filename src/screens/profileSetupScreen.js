@@ -69,9 +69,9 @@ export default function ProfileSetupScreen({
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          bounces={false}
-          alwaysBounceVertical={false}
-          overScrollMode="never"
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
         >
           <View style={styles.topRow}>
             <Pressable

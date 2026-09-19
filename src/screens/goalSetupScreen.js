@@ -106,9 +106,9 @@ export default function GoalSetupScreen({ onBack, onFinish }) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          bounces={false}
-          alwaysBounceVertical={false}
-          overScrollMode="never"
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
         >
           <View style={styles.topRow}>
             <Pressable

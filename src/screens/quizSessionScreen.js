@@ -130,6 +130,9 @@ export default function QuizSessionScreen({
         style={styles.flex}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         <View style={styles.questionHeader}>
           <Text style={styles.questionCount}>
