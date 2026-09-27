@@ -1,5 +1,6 @@
-import React, { use, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -8,15 +9,22 @@ import {
     TextInput,
     View,
   } from 'react-native';
-  import { StatusBar } from "expo-status-bar";
-  import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from '../styles/signUpScreenStyles';
+import {
+  isValidEmail,
+  isValidFullName,
+  isValidPassword,
+} from '../utils/authValidation';
 
   function FormField({
     label,
     placeholder,
     value,
     onChangeText,
+    onBlur,
+    error,
     secureTextEntry = false,
     keyboardType = 'default',
     autoCapitalize = 'sentences',
@@ -26,15 +34,22 @@ import styles from '../styles/signUpScreenStyles';
         <Text style={styles.label}>{label}</Text>
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, error && styles.inputError]}
           placeholder={placeholder}
           placeholderTextColor="#AEB8AE"
           value={value}
           onChangeText={onChangeText}
+          onBlur={onBlur}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          accessibilityHint={error || undefined}
         />
+        {error ? (
+          <Text style={styles.fieldError} accessibilityRole="alert">
+            {error}
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -51,14 +66,67 @@ import styles from '../styles/signUpScreenStyles';
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] =
     useState('');
+    const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+    const [hasAttemptedCreate, setHasAttemptedCreate] = useState(false);
+    const [touchedFields, setTouchedFields] = useState({});
+    const isCreatingAccountRef = useRef(false);
 
-    const handleCreateAccount = () => {
-      onCreateAccount?.({
-        fullName,
-        email,
-        password,
-        confirmPassword,
-      });
+    const shouldShowError = (fieldName) =>
+      hasAttemptedCreate || touchedFields[fieldName];
+
+    const fullNameError = shouldShowError('fullName') &&
+      !isValidFullName(fullName)
+      ? 'Full name can contain letters and spaces only.'
+      : '';
+    const emailError = shouldShowError('email') && !isValidEmail(email)
+      ? 'Enter a valid email address.'
+      : '';
+    const passwordError = shouldShowError('password') &&
+      !isValidPassword(password)
+      ? 'Password must be at least 8 characters and include at least 1 special character.'
+      : '';
+    const confirmPasswordError = shouldShowError('confirmPassword')
+      ? !confirmPassword
+        ? 'Please repeat your password.'
+        : confirmPassword !== password
+          ? 'Passwords do not match.'
+          : ''
+      : '';
+
+    const handleCreateAccount = async () => {
+      if (isCreatingAccountRef.current) return;
+
+      setHasAttemptedCreate(true);
+
+      if (
+        !isValidFullName(fullName) ||
+        !isValidEmail(email) ||
+        !isValidPassword(password) ||
+        !confirmPassword ||
+        confirmPassword !== password
+      ) {
+        return;
+      }
+
+      isCreatingAccountRef.current = true;
+      setIsCreatingAccount(true);
+
+      try {
+        await onCreateAccount?.({
+          fullName,
+          email,
+          password,
+          confirmPassword,
+        });
+      } catch (error) {
+        Alert.alert(
+          'Could not create account',
+          error?.message || 'Something went wrong. Please try again.',
+        );
+      } finally {
+        isCreatingAccountRef.current = false;
+        setIsCreatingAccount(false);
+      }
     };
 
     return (
@@ -105,7 +173,18 @@ import styles from '../styles/signUpScreenStyles';
                 label="Full name"
                 placeholder="Alex Morgan"
                 value={fullName}
-                onChangeText={setFullName}
+                onChangeText={(value) => {
+                  setFullName(value);
+                  setTouchedFields((current) => ({
+                    ...current,
+                    fullName: true,
+                  }));
+                }}
+                onBlur={() => setTouchedFields((current) => ({
+                  ...current,
+                  fullName: true,
+                }))}
+                error={fullNameError}
                 autoCapitalize="words"
               />
 
@@ -113,7 +192,18 @@ import styles from '../styles/signUpScreenStyles';
                 label="Email"
                 placeholder="alex@example.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  setTouchedFields((current) => ({
+                    ...current,
+                    email: true,
+                  }));
+                }}
+                onBlur={() => setTouchedFields((current) => ({
+                  ...current,
+                  email: true,
+                }))}
+                error={emailError}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -122,7 +212,18 @@ import styles from '../styles/signUpScreenStyles';
                 label="Password"
                 placeholder="At least 8 characters"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  setTouchedFields((current) => ({
+                    ...current,
+                    password: true,
+                  }));
+                }}
+                onBlur={() => setTouchedFields((current) => ({
+                  ...current,
+                  password: true,
+                }))}
+                error={passwordError}
                 secureTextEntry
                 autoCapitalize="none"
               />
@@ -131,7 +232,18 @@ import styles from '../styles/signUpScreenStyles';
                 label="Confirm password"
                 placeholder="Repeat your password"
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(value) => {
+                  setConfirmPassword(value);
+                  setTouchedFields((current) => ({
+                    ...current,
+                    confirmPassword: true,
+                  }));
+                }}
+                onBlur={() => setTouchedFields((current) => ({
+                  ...current,
+                  confirmPassword: true,
+                }))}
+                error={confirmPasswordError}
                 secureTextEntry
                 autoCapitalize="none"
               />
@@ -141,7 +253,8 @@ import styles from '../styles/signUpScreenStyles';
                   styles.primaryButton,
                   pressed && styles.pressed,
                 ]}
-                onPress={handleCreateAccount}
+                disabled={isCreatingAccount}
+                onPress={() => { void handleCreateAccount(); }}
               >
                 <Text style={styles.primaryButtonText}
                 >Create Account</Text>

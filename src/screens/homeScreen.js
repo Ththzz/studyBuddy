@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,38 @@ const RING_SIZE = 188;
 const RING_STROKE_WIDTH = 12;
 const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const INITIAL_NOTIFICATIONS = [
+  {
+    id: 'focus-session',
+    iconName: 'clock',
+    iconColor: '#B46B24',
+    iconBackground: '#FFF0D9',
+    title: 'Time for a focus session',
+    message: 'Keep your study goal moving today.',
+    timeLabel: 'Today',
+    read: false,
+  },
+  {
+    id: 'study-streak',
+    iconName: 'spark',
+    iconColor: '#438C31',
+    iconBackground: '#EAF6E4',
+    title: 'Your study streak is growing',
+    message: 'One more session keeps your momentum going.',
+    timeLabel: 'Yesterday',
+    read: false,
+  },
+  {
+    id: 'review-cards',
+    iconName: 'cards',
+    iconColor: '#3974BC',
+    iconBackground: '#E5EFFC',
+    title: 'Review your flashcards',
+    message: 'A quick review can strengthen today’s learning.',
+    timeLabel: 'Mon',
+    read: true,
+  },
+];
 
 function ProgressRing({ value, label, progressPercent = 0 }) {
   const numericProgress = Number(progressPercent);
@@ -171,7 +203,11 @@ export default function HomeScreen({
   todayRemainingLabel = '35 min left',
   todaySessionCount = 3,
   dailyProgressPercent = 0,
-  onNotifications,
+  studyStreakDays = 0,
+  quizAverage = null,
+  todaySubjects = [],
+  avatarUri = null,
+  onProfile,
   onStartFocus,
   onViewStudy,
   onGenerateQuiz,
@@ -181,6 +217,17 @@ export default function HomeScreen({
 }) {
   const insets = useSafeAreaInsets();
   const avatarLetter = userName.trim().charAt(0).toUpperCase() || 'A';
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [isNotificationPopoverVisible, setNotificationPopoverVisible] = useState(false);
+  const unreadNotificationCount = notifications.filter((notification) => !notification.read).length;
+
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications((currentNotifications) => currentNotifications.map((notification) => (
+      notification.id === notificationId
+        ? { ...notification, read: true }
+        : notification
+    )));
+  };
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -209,16 +256,28 @@ export default function HomeScreen({
                 styles.notification,
                 pressed && styles.notificationPressed,
               ]}
-              onPress={onNotifications}
+              onPress={() => setNotificationPopoverVisible(true)}
               accessibilityRole="button"
               accessibilityLabel="Notifications"
             >
               <LineIcon name="bell" size={19} color="#151A15" />
             </Pressable>
 
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{avatarLetter}</Text>
-            </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.avatar,
+                pressed && styles.avatarPressed,
+              ]}
+              onPress={onProfile}
+              accessibilityRole="button"
+              accessibilityLabel="Open profile and settings"
+            >
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>{avatarLetter}</Text>
+              )}
+            </Pressable>
           </View>
         </View>
 
@@ -256,9 +315,9 @@ export default function HomeScreen({
         </View>
 
         <View style={styles.summaryGrid}>
-          <StatCard icon="🔥" value="7 days" label="Study streak" />
+          <StatCard icon="🔥" value={`${studyStreakDays} days`} label="Study streak" />
           <StatCard icon="◷" value={String(todaySessionCount)} label="Sessions today" />
-          <StatCard icon="✦" value="82%" label="Quiz average" />
+          <StatCard icon="✦" value={quizAverage === null ? '—' : `${quizAverage}%`} label="Quiz average" />
         </View>
 
         <View style={styles.sectionHeading}>
@@ -272,27 +331,24 @@ export default function HomeScreen({
         </View>
 
         <View style={styles.subjectList}>
-          <StudyCard
-            color="#76C457"
-            title="Computer Networks"
-            subtitle="Focus session"
-            progress={72}
-            time="45 min"
-          />
-          <StudyCard
-            color="#4D8DDF"
-            title="Database"
-            subtitle="Review notes"
-            progress={42}
-            time="25 min"
-          />
-          <StudyCard
-            color="#F59E42"
-            title="Artificial Intelligence"
-            subtitle="Quick practice"
-            progress={25}
-            time="15 min"
-          />
+          {todaySubjects.length > 0 ? todaySubjects.map((subject, index) => (
+            <StudyCard
+              key={subject.name}
+              color={['#76C457', '#4D8DDF', '#F59E42'][index % 3]}
+              title={subject.name}
+              subtitle={subject.subtitle}
+              progress={subject.progressPercent}
+              time={subject.timeLabel}
+            />
+          )) : (
+            <View style={styles.subjectCard}>
+              <View style={[styles.subjectDot, { backgroundColor: '#D8E2D4' }]} />
+              <View style={styles.subjectInfo}>
+                <Text style={styles.subjectTitle}>No study sessions yet</Text>
+                <Text style={styles.subjectSubtitle}>Start a study session to see today&apos;s activity.</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.sectionHeading}>
@@ -322,6 +378,89 @@ export default function HomeScreen({
         <NavItem iconName="qa" label="Q&A" onPress={onQuickQA} />
         <NavItem iconName="chart" label="Analytics" onPress={onAnalytics} />
       </View>
+
+      {isNotificationPopoverVisible ? (
+        <View style={styles.notificationOverlay}>
+          <Pressable
+            style={styles.notificationDismissArea}
+            onPress={() => setNotificationPopoverVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close notifications"
+          />
+
+          <View style={[styles.notificationPopover, { top: insets.top + 58 }]}>
+            <View style={styles.notificationPopoverHeader}>
+              <View style={styles.notificationPopoverHeading}>
+                <Text style={styles.notificationPopoverTitle}>Notifications</Text>
+                <Text style={styles.notificationPopoverSubtitle}>
+                  {unreadNotificationCount > 0
+                    ? `${unreadNotificationCount} unread`
+                    : 'All caught up'}
+                </Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.notificationClose,
+                  pressed && styles.notificationClosePressed,
+                ]}
+                onPress={() => setNotificationPopoverVisible(false)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close notifications"
+              >
+                <LineIcon name="x" size={16} color="#697269" />
+              </Pressable>
+            </View>
+
+            <View style={styles.notificationDivider} />
+
+            {notifications.length > 0 ? (
+              <View style={styles.notificationList}>
+                {notifications.map((notification) => (
+                  <Pressable
+                    key={notification.id}
+                    style={({ pressed }) => [
+                      styles.notificationItem,
+                      !notification.read && styles.notificationItemUnread,
+                      pressed && styles.notificationItemPressed,
+                    ]}
+                    onPress={() => markNotificationAsRead(notification.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${notification.title}, ${notification.read ? 'read' : 'unread'}`}
+                  >
+                    <View
+                      style={[
+                        styles.notificationItemIcon,
+                        { backgroundColor: notification.iconBackground },
+                      ]}
+                    >
+                      <LineIcon
+                        name={notification.iconName}
+                        size={16}
+                        color={notification.iconColor}
+                      />
+                    </View>
+                    <View style={styles.notificationItemCopy}>
+                      <Text style={styles.notificationItemTitle} numberOfLines={1}>
+                        {notification.title}
+                      </Text>
+                      <Text style={styles.notificationItemMessage} numberOfLines={2}>
+                        {notification.message}
+                      </Text>
+                      <Text style={styles.notificationItemTime}>{notification.timeLabel}</Text>
+                    </View>
+                    {!notification.read ? <View style={styles.notificationUnreadDot} /> : null}
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.notificationEmpty}>
+                <Text style={styles.notificationEmptyText}>No new notifications</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }

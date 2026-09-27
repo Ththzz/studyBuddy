@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LineIcon from '../components/lineIcon'
+import { createQuizAttemptId } from '../services/quizAttemptService'
 import styles from '../styles/quizSessionScreenStyles'
 
 const QUESTION_BANK = [
@@ -53,49 +54,122 @@ function getSafeQuestionCount(value) {
 
 export default function QuizSessionScreen({
   config = {},
+  reviewResult = null,
   onExit,
+  onReviewDone,
   onComplete,
 }) {
-  const totalQuestions = getSafeQuestionCount(config.questionCount)
+  const hasGeneratedQuestions = Array.isArray(config.questions) && config.questions.length > 0
+  const questions = hasGeneratedQuestions ? config.questions : QUESTION_BANK
+  const isReviewMode = Boolean(reviewResult)
+  const totalQuestions = hasGeneratedQuestions
+    ? questions.length
+    : getSafeQuestionCount(config.questionCount)
   const [questionNumber, setQuestionNumber] = useState(1)
   const [selectedKey, setSelectedKey] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
+  const [isCompleting, setIsCompleting] = useState(false)
   const startedAtRef = useRef(Date.now())
+  const answerRecordsRef = useRef([])
+  const isCompletingRef = useRef(false)
+  const completionResultRef = useRef(null)
+  const attemptIdRef = useRef(null)
+  if (!attemptIdRef.current) attemptIdRef.current = createQuizAttemptId()
 
   const question = useMemo(
-    () => QUESTION_BANK[(questionNumber - 1) % QUESTION_BANK.length],
-    [questionNumber],
+    () => questions[(questionNumber - 1) % questions.length],
+    [questionNumber, questions],
   )
-  const isCorrect = submitted && selectedKey === question.correctKey
+  const reviewAnswersByQuestionId = useMemo(() => new Map(
+    (Array.isArray(reviewResult?.answers) ? reviewResult.answers : []).map((answer) => [
+      answer.questionId,
+      answer.selectedOptionKey,
+    ]),
+  ), [reviewResult])
+  const activeSelectedKey = isReviewMode
+    ? reviewAnswersByQuestionId.get(question.id) || null
+    : selectedKey
+  const isSubmitted = isReviewMode || submitted
+  const isCorrect = isSubmitted && activeSelectedKey === question.correctKey
   const progressPercent = Math.min(100, (questionNumber / totalQuestions) * 100)
 
   const submitAnswer = () => {
-    if (!selectedKey || submitted) return
+    if (isReviewMode || !selectedKey || submitted) return
 
+    answerRecordsRef.current = [
+      ...answerRecordsRef.current,
+      {
+        questionId: question.id,
+        selectedOptionKey: selectedKey,
+        answeredAt: new Date().toISOString(),
+      },
+    ]
     setSubmitted(true)
   }
 
-  const goToNextQuestion = () => {
-    const nextScore = score + (isCorrect ? 1 : 0)
-    setScore(nextScore)
-
-    if (questionNumber >= totalQuestions) {
-      onComplete?.({
-        score: nextScore,
-        totalQuestions,
-        subjectName: question.subject,
-        durationSeconds: Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)),
-      })
+  const goToNextQuestion = async () => {
+    if (isReviewMode) {
+      if (questionNumber >= totalQuestions) {
+        onReviewDone?.()
+        return
+      }
+      setQuestionNumber((currentQuestion) => currentQuestion + 1)
       return
     }
 
+    if (isCompletingRef.current) return
+
+    const nextScore = score + (isCorrect ? 1 : 0)
+
+    if (questionNumber >= totalQuestions) {
+      if (!completionResultRef.current) {
+        const completedAt = Date.now()
+        completionResultRef.current = {
+          attemptId: attemptIdRef.current,
+          score: nextScore,
+          totalQuestions,
+          subjectName: question.subject || config.subjectName || 'Study material',
+          durationSeconds: Math.max(1, Math.round((completedAt - startedAtRef.current) / 1000)),
+          startedAt: new Date(startedAtRef.current).toISOString(),
+          completedAt: new Date(completedAt).toISOString(),
+          answers: answerRecordsRef.current,
+        }
+      }
+
+      isCompletingRef.current = true
+      setIsCompleting(true)
+
+      try {
+        const didComplete = await onComplete?.(completionResultRef.current)
+
+        if (didComplete === false) {
+          isCompletingRef.current = false
+          setIsCompleting(false)
+        }
+      } catch (error) {
+        isCompletingRef.current = false
+        setIsCompleting(false)
+        Alert.alert(
+          'Quiz result not saved',
+          error?.message || 'Your answers are still on screen. Please try saving the result again.',
+        )
+      }
+      return
+    }
+
+    setScore(nextScore)
     setQuestionNumber((currentQuestion) => currentQuestion + 1)
     setSelectedKey(null)
     setSubmitted(false)
   }
 
   const handleExit = () => {
+    if (isReviewMode) {
+      onReviewDone?.()
+      return
+    }
+
     Alert.alert(
       'Exit quiz?',
       'Your current answer will not be saved.',
@@ -122,7 +196,7 @@ export default function QuizSessionScreen({
         </Pressable>
         <Text style={styles.headerTitle}>Quiz</Text>
         <Text style={styles.headerSubject} numberOfLines={1}>
-          {question.subject}
+          {question.subject || config.subjectName || 'Study material'}
         </Text>
       </View>
 
@@ -138,7 +212,7 @@ export default function QuizSessionScreen({
           <Text style={styles.questionCount}>
             Question <Text style={styles.questionCountStrong}>{questionNumber}</Text> of {totalQuestions}
           </Text>
-          <Text style={styles.practiceLabel}>Practice mode</Text>
+          <Text style={styles.practiceLabel}>{isReviewMode ? 'Review mode' : 'Practice mode'}</Text>
         </View>
 
         <View
@@ -161,9 +235,9 @@ export default function QuizSessionScreen({
 
           <View style={styles.answerList}>
             {question.answers.map(([key, answer]) => {
-              const isSelected = selectedKey === key
-              const isCorrectAnswer = submitted && key === question.correctKey
-              const isIncorrectAnswer = submitted && isSelected && !isCorrect
+              const isSelected = activeSelectedKey === key
+              const isCorrectAnswer = isSubmitted && key === question.correctKey
+              const isIncorrectAnswer = isSubmitted && isSelected && !isCorrect
 
               return (
                 <Pressable
@@ -173,13 +247,13 @@ export default function QuizSessionScreen({
                     isSelected && styles.answerButtonSelected,
                     isCorrectAnswer && styles.answerButtonCorrect,
                     isIncorrectAnswer && styles.answerButtonIncorrect,
-                    pressed && !submitted && styles.answerButtonPressed,
+                    pressed && !isSubmitted && styles.answerButtonPressed,
                   ]}
                   onPress={() => setSelectedKey(key)}
-                  disabled={submitted}
+                  disabled={isSubmitted}
                   accessibilityRole="button"
                   accessibilityLabel={`Answer ${key}: ${answer}`}
-                  accessibilityState={{ selected: isSelected, disabled: submitted }}
+                  accessibilityState={{ selected: isSelected, disabled: isSubmitted }}
                 >
                   <View style={[
                     styles.answerKey,
@@ -196,7 +270,7 @@ export default function QuizSessionScreen({
             })}
           </View>
 
-          {submitted ? (
+          {isSubmitted ? (
             <View style={[styles.explanation, isCorrect ? styles.explanationCorrect : styles.explanationIncorrect]}>
               <View style={styles.explanationHeader}>
                 <LineIcon
@@ -216,32 +290,33 @@ export default function QuizSessionScreen({
         <Pressable
           style={({ pressed }) => [
             styles.primaryButton,
-            !selectedKey && styles.primaryButtonDisabled,
-            pressed && selectedKey && styles.buttonPressed,
+            !isReviewMode && !selectedKey && styles.primaryButtonDisabled,
+            !isReviewMode && isCompleting && styles.primaryButtonDisabled,
+            pressed && (isReviewMode || (selectedKey && !isCompleting)) && styles.buttonPressed,
           ]}
-          onPress={submitted ? goToNextQuestion : submitAnswer}
-          disabled={!selectedKey}
+          onPress={isReviewMode ? goToNextQuestion : (submitted ? goToNextQuestion : submitAnswer)}
+          disabled={!isReviewMode && (!selectedKey || isCompleting)}
           accessibilityRole="button"
-          accessibilityLabel={submitted
-            ? (questionNumber >= totalQuestions ? 'See quiz results' : 'Next question')
-            : 'Check answer'}
-          accessibilityState={{ disabled: !selectedKey }}
+          accessibilityLabel={isCompleting
+            ? 'Saving quiz results'
+            : isReviewMode
+              ? (questionNumber >= totalQuestions ? 'Back to quiz result' : 'Next answer')
+              : submitted
+              ? (questionNumber >= totalQuestions ? 'See quiz results' : 'Next question')
+              : 'Check answer'}
+          accessibilityState={{ disabled: !isReviewMode && (!selectedKey || isCompleting) }}
         >
           <Text style={styles.primaryButtonText}>
-            {submitted
-              ? (questionNumber >= totalQuestions ? 'See Results' : 'Next Question')
-              : 'Check Answer'}
+            {isCompleting
+              ? 'Saving...'
+              : isReviewMode
+                ? (questionNumber >= totalQuestions ? 'Back to Result' : 'Next Answer')
+                : submitted
+                ? (questionNumber >= totalQuestions ? 'See Results' : 'Next Question')
+                : 'Check Answer'}
           </Text>
         </Pressable>
 
-        <Pressable
-          style={({ pressed }) => [styles.exitButton, pressed && styles.buttonPressed]}
-          onPress={handleExit}
-          accessibilityRole="button"
-          accessibilityLabel="Exit quiz"
-        >
-          <Text style={styles.exitButtonText}>Exit Quiz</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   )

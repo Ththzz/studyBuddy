@@ -47,14 +47,6 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
 
-  intro: {
-    marginTop: 4,
-    marginBottom: 14,
-    color: '#697269',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-
   uploadCard: {
     paddingHorizontal: 18,
     paddingVertical: 20,
@@ -103,6 +95,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#DCEBD5',
+  },
+
+  mediaButtonDisabled: {
+    opacity: 0.55,
   },
 
   secondaryButtonText: {
@@ -310,6 +306,105 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  questionTypeOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(17, 24, 17, 0.32)',
+  },
+
+  questionTypeScrim: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  questionTypeSheet: {
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: '#FFFFFF',
+  },
+
+  questionTypeHandle: {
+    width: 38,
+    height: 4,
+    alignSelf: 'center',
+    marginBottom: 18,
+    borderRadius: 2,
+    backgroundColor: '#D9DFD7',
+  },
+
+  questionTypeTitle: {
+    color: '#151A15',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  questionTypeSubtitle: {
+    marginTop: 5,
+    color: '#697269',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  questionTypeOptions: {
+    gap: 8,
+    marginTop: 18,
+  },
+
+  questionTypeOption: {
+    minHeight: 62,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E2E8DF',
+    borderRadius: 13,
+    backgroundColor: '#FBFCFA',
+  },
+
+  questionTypeOptionSelected: {
+    borderColor: '#B8D5AE',
+    backgroundColor: '#F3FAF0',
+  },
+
+  questionTypeOptionPressed: {
+    opacity: 0.72,
+  },
+
+  questionTypeOptionCopy: {
+    flex: 1,
+  },
+
+  questionTypeOptionLabel: {
+    color: '#151A15',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  questionTypeOptionDescription: {
+    marginTop: 3,
+    color: '#697269',
+    fontSize: 11,
+  },
+
+  questionTypeCancel: {
+    minHeight: 46,
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: '#F1F4EF',
+  },
+
+  questionTypeCancelText: {
+    color: '#394239',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
   primaryButton: {
     minHeight: 50,
     marginTop: 18,
@@ -338,13 +433,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  footerCopy: {
+  generationError: {
     marginTop: 10,
-    color: '#8A9388',
-    fontSize: 11,
-    lineHeight: 16,
+    paddingHorizontal: 12,
+    color: '#A73737',
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'center',
   },
+
 
   buttonPressed: {
     opacity: 0.72,

@@ -129,13 +129,12 @@ const styles = StyleSheet.create({
   },
 
   goalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
     gap: 9,
   },
 
   goalChoice: {
-    width: '31.8%',
+    width: '100%',
     minHeight: 52,
     borderWidth: 1.5,
     borderColor: '#E2E8DF',
@@ -262,39 +261,6 @@ const styles = StyleSheet.create({
 
   dayChoiceTextActive: {
     color: '#FFFFFF',
-  },
-
-  subjectChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-
-  subjectChip: {
-    minHeight: 40,
-    paddingHorizontal: 13,
-    borderWidth: 1.5,
-    borderColor: '#E2E8DF',
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-
-  subjectChipActive: {
-    borderColor: '#76C457',
-    backgroundColor: '#EAF6E4',
-  },
-
-  subjectChipText: {
-    color: '#697269',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  subjectChipTextActive: {
-    color: '#438C31',
   },
 
   primaryButton: {

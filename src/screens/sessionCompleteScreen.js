@@ -119,17 +119,6 @@ export default function SessionCompleteScreen({
               <Text style={styles.ghostButtonText}>Start Another Session</Text>
             </Pressable>
   
-            <Pressable
-              style={({ pressed }) => [
-                styles.textButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={onDone}
-              accessibilityRole="button"
-              accessibilityLabel="Back to home"
-            >
-              <Text style={styles.textButtonText}>Back to Home</Text>
-            </Pressable>
           </View>
         </View>
       </ScrollView>

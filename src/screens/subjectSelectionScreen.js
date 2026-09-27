@@ -59,6 +59,20 @@ function SubjectOption({ name, selected, onPress }) {
   )
 }
 
+function CreateSubjectButton({ onPress }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.createSubjectButton, pressed && styles.buttonPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Create a subject"
+    >
+      <LineIcon name="plus" size={17} color="#438C31" />
+      <Text style={styles.createSubjectButtonText}>Create a subject</Text>
+    </Pressable>
+  )
+}
+
 function EmptySubjectState({ onContinue }) {
   return (
     <View style={styles.emptyState}>
@@ -81,7 +95,7 @@ function EmptySubjectState({ onContinue }) {
   )
 }
 
-export default function SubjectSelectionScreen({ subjects, onBack, onContinue }) {
+export default function SubjectSelectionScreen({ subjects, onBack, onContinue, onCreateSubject }) {
   const [selectedSubjectName, setSelectedSubjectName] = useState('')
   const subjectOptions = useMemo(() => normalizeSubjects(subjects), [subjects])
   const canContinue = Boolean(selectedSubjectName)
@@ -117,6 +131,8 @@ export default function SubjectSelectionScreen({ subjects, onBack, onContinue })
             Pick what you want to study and we&apos;ll keep the session connected to it.
           </Text>
         </View>
+
+        <CreateSubjectButton onPress={onCreateSubject} />
 
         {subjectOptions.length > 0 ? (
           <>

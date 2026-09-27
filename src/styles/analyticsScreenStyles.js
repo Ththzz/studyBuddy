@@ -179,7 +179,6 @@ const styles = StyleSheet.create({
 
   barFill: {
     width: '100%',
-    minHeight: 5,
     borderRadius: 10,
     backgroundColor: '#76C457',
   },

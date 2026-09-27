@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -48,9 +49,26 @@ export default function LoginScreen({
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const isSigningInRef = useRef(false);
 
-  const handleLogin = () => {
-    onLogin?.({ email, password });
+  const handleLogin = async () => {
+    if (isSigningInRef.current) return;
+
+    isSigningInRef.current = true;
+    setIsSigningIn(true);
+
+    try {
+      await onLogin?.({ email, password });
+    } catch (error) {
+      Alert.alert(
+        'Could not sign in',
+        error?.message || 'Something went wrong. Please try again.',
+      );
+    } finally {
+      isSigningInRef.current = false;
+      setIsSigningIn(false);
+    }
   };
 
   return (
@@ -114,7 +132,8 @@ export default function LoginScreen({
                 styles.primaryButton,
                 pressed && styles.pressed,
               ]}
-              onPress={handleLogin}
+              disabled={isSigningIn}
+              onPress={() => { void handleLogin(); }}
             >
               <Text style={styles.primaryButtonText}>Sign In</Text>
             </Pressable>

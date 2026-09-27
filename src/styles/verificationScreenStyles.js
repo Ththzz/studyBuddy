@@ -175,6 +175,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  disabledResendLink: {
+    opacity: 0.5,
+  },
+
   resendMessage: {
     marginTop: 8,
     color: '#438C31',

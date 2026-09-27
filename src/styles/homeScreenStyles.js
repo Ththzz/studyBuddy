@@ -67,12 +67,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#D7EBCE',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
 
   avatarText: {
     color: '#438C31',
     fontSize: 23,
     fontWeight: '800',
+  },
+
+  avatarPressed: {
+    backgroundColor: '#BFE0B3',
+    transform: [{ scale: 0.96 }],
   },
 
   progressCard: {
@@ -386,6 +397,158 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 24,
     elevation: 8,
+  },
+
+  notificationOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    elevation: 10,
+  },
+
+  notificationDismissArea: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+
+  notificationPopover: {
+    position: 'absolute',
+    right: 18,
+    width: 286,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8DF',
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 7,
+    },
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+
+  notificationPopoverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  notificationPopoverHeading: {
+    flex: 1,
+  },
+
+  notificationPopoverTitle: {
+    color: '#151A15',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+
+  notificationPopoverSubtitle: {
+    marginTop: 2,
+    color: '#697269',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  notificationClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  notificationClosePressed: {
+    backgroundColor: '#EAF6E4',
+  },
+
+  notificationDivider: {
+    height: 1,
+    marginVertical: 9,
+    backgroundColor: '#EDF1EB',
+  },
+
+  notificationList: {
+    gap: 6,
+  },
+
+  notificationItem: {
+    minHeight: 64,
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderRadius: 11,
+  },
+
+  notificationItemUnread: {
+    backgroundColor: '#F7FCF4',
+  },
+
+  notificationItemPressed: {
+    backgroundColor: '#EAF6E4',
+  },
+
+  notificationItemIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  notificationItemCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  notificationItemTitle: {
+    color: '#151A15',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+
+  notificationItemMessage: {
+    marginTop: 2,
+    color: '#697269',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+
+  notificationItemTime: {
+    marginTop: 3,
+    color: '#9AA49A',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  notificationUnreadDot: {
+    width: 7,
+    height: 7,
+    marginTop: 5,
+    borderRadius: 4,
+    backgroundColor: '#76C457',
+  },
+
+  notificationEmpty: {
+    paddingVertical: 17,
+    alignItems: 'center',
+  },
+
+  notificationEmptyText: {
+    color: '#697269',
+    fontSize: 12,
   },
 
   navItem: {

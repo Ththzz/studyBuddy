@@ -31,6 +31,13 @@
         {
           "assets": ["./assets/logo-welcome-crisp.png"]
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Study Buddy to access your photos for your profile picture.",
+          "microphonePermission": false
+        }
       ]
     ]
   }

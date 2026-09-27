@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from '../styles/verificationScreenStyles';
 
 const CODE_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
 
 export default function VerificationScreen({
   email,
@@ -22,7 +24,36 @@ export default function VerificationScreen({
   const [digits, setDigits] = useState(Array(CODE_LENGTH).fill(''));
   const [errorMessage, setErrorMessage] = useState('');
   const [resendMessage, setResendMessage] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldownUntil, setResendCooldownUntil] = useState(null);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+  const isVerifyingRef = useRef(false);
+  const isResendingRef = useRef(false);
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    if (!resendCooldownUntil) {
+      setResendCooldownSeconds(0);
+      return undefined;
+    }
+
+    const updateCooldown = () => {
+      const remainingMs = resendCooldownUntil - Date.now();
+      const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+
+      setResendCooldownSeconds(remainingSeconds);
+
+      if (remainingMs <= 0) {
+        setResendCooldownUntil(null);
+      }
+    };
+
+    updateCooldown();
+    const intervalId = setInterval(updateCooldown, 250);
+
+    return () => clearInterval(intervalId);
+  }, [resendCooldownUntil]);
 
   const updateDigit = (value, index) => {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -47,7 +78,9 @@ export default function VerificationScreen({
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
+    if (isVerifyingRef.current || isResendingRef.current) return;
+
     const code = digits.join('');
 
     if (code.length !== CODE_LENGTH) {
@@ -55,25 +88,64 @@ export default function VerificationScreen({
       return;
     }
 
-    if (code === '000000') {
-      setErrorMessage('That code is invalid. Try again.');
-      return;
-    }
+    isVerifyingRef.current = true;
+    setIsVerifying(true);
 
-    if (code === '999999') {
-      setErrorMessage('This code has expired. Resend a new one.');
-      return;
+    try {
+      await onVerify?.(code);
+    } catch (error) {
+      setErrorMessage(
+        error?.message || 'Verification failed. Please try again.',
+      );
+    } finally {
+      isVerifyingRef.current = false;
+      setIsVerifying(false);
     }
-
-    onVerify?.(code);
   };
 
-  const handleResend = () => {
-    setDigits(Array(CODE_LENGTH).fill(''));
+  const handleResend = async () => {
+    if (
+      isResendingRef.current ||
+      isVerifyingRef.current ||
+      (resendCooldownUntil && resendCooldownUntil > Date.now())
+    ) {
+      return;
+    }
+
+    isResendingRef.current = true;
+    setIsResending(true);
     setErrorMessage('');
-    setResendMessage('A new code is on its way.');
-    inputRefs.current[0]?.focus();
-    onResend?.();
+    setResendMessage('');
+
+    try {
+      const result = await onResend?.();
+      const returnedError = typeof result === 'string'
+        ? result
+        : result === false
+          ? 'Could not resend code. Please try again.'
+          : result instanceof Error
+            ? result
+            : result?.error || (result?.success === false ? 'Could not resend code. Please try again.' : null);
+
+      if (returnedError) {
+        const message = typeof returnedError === 'string'
+          ? returnedError
+          : returnedError?.message;
+        setErrorMessage(message || 'Could not resend code. Please try again.');
+        return;
+      }
+
+      setDigits(Array(CODE_LENGTH).fill(''));
+      setResendMessage('A new code is on its way.');
+      setResendCooldownUntil(Date.now() + RESEND_COOLDOWN_MS);
+      setResendCooldownSeconds(RESEND_COOLDOWN_SECONDS);
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      setErrorMessage(error?.message || 'Could not resend code. Please try again.');
+    } finally {
+      isResendingRef.current = false;
+      setIsResending(false);
+    }
   };
 
   return (
@@ -150,7 +222,8 @@ export default function VerificationScreen({
                   styles.primaryButton,
                   pressed && styles.pressed,
                 ]}
-                onPress={handleVerify}
+                disabled={isVerifying || isResending}
+                onPress={() => { void handleVerify(); }}
               >
                 <Text style={styles.primaryButtonText}>Verify</Text>
               </Pressable>
@@ -159,10 +232,21 @@ export default function VerificationScreen({
             <View style={styles.resendRow}>
               <Text style={styles.resendPrompt}>Didn’t get it?</Text>
               <Pressable
-                style={({ pressed }) => pressed && styles.pressedLink}
-                onPress={handleResend}
+                style={({ pressed }) => [
+                  pressed && styles.pressedLink,
+                  (isResending || isVerifying || resendCooldownSeconds > 0) &&
+                    styles.disabledResendLink,
+                ]}
+                disabled={
+                  isResending || isVerifying || resendCooldownSeconds > 0
+                }
+                onPress={() => { void handleResend(); }}
               >
-                <Text style={styles.resendLink}>Resend Code</Text>
+                <Text style={styles.resendLink}>
+                  {resendCooldownSeconds > 0
+                    ? `Resend Code (${resendCooldownSeconds}s)`
+                    : 'Resend Code'}
+                </Text>
               </Pressable>
             </View>
 

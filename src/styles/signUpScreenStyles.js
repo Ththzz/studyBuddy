@@ -87,6 +87,18 @@ const styles = StyleSheet.create({
       fontSize: 17,
     },
 
+    inputError: {
+      borderColor: '#E05252',
+      backgroundColor: '#FFF8F8',
+    },
+
+    fieldError: {
+      marginTop: 6,
+      color: '#E05252',
+      fontSize: 12,
+      lineHeight: 16,
+    },
+
     primaryButton: {
       height: 56,
       marginTop: 2,
@@ -189,4 +201,3 @@ const styles = StyleSheet.create({
   });
 
 export default styles;
-

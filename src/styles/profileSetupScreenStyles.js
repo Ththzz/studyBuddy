@@ -112,6 +112,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+
   uploadCopy: {
     flex: 1,
     minWidth: 0,
@@ -145,6 +150,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  uploadButtonDisabled: {
+    opacity: 0.65,
+  },
+
   fieldGroup: {
     marginTop: 20,
   },
@@ -171,7 +180,8 @@ const styles = StyleSheet.create({
   yearGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    justifyContent: 'space-between',
+    rowGap: 9,
   },
 
   yearChoice: {

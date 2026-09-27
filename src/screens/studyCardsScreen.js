@@ -1,96 +1,12 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Animated, Easing, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Alert, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LineIcon from '../components/lineIcon'
 import styles from '../styles/studyCardsScreenStyles'
 
-const CARD_SETS = {
-  'computer-networks': [
-    {
-      id: 'dns',
-      question: 'What does DNS do?',
-      answer: 'DNS translates a human-readable domain name, such as example.com, into an IP address that devices can use to connect.',
-    },
-    {
-      id: 'osi-transport',
-      question: 'Which OSI layer is responsible for end-to-end delivery?',
-      answer: 'The Transport layer (Layer 4) manages end-to-end delivery, reliability, flow control, and segmentation.',
-    },
-    {
-      id: 'tcp-udp',
-      question: 'What is the main difference between TCP and UDP?',
-      answer: 'TCP is connection-oriented and prioritizes reliable, ordered delivery. UDP is connectionless and prioritizes lower overhead and speed.',
-    },
-    {
-      id: 'private-ip',
-      question: 'Why are private IP addresses used in a local network?',
-      answer: 'Private IP addresses let devices communicate inside a local network without each device needing a globally routable public address.',
-    },
-    {
-      id: 'https',
-      question: 'What does HTTPS add to HTTP?',
-      answer: 'HTTPS uses TLS to encrypt the connection and help verify the identity of the server.',
-    },
-  ],
-  database: [
-    {
-      id: 'primary-key',
-      question: 'What is the purpose of a primary key?',
-      answer: 'A primary key uniquely identifies each row in a table and prevents duplicate or missing identifiers.',
-    },
-    {
-      id: 'normalization',
-      question: 'What problem does database normalization help reduce?',
-      answer: 'Normalization reduces duplicated data and prevents update, insert, and delete anomalies.',
-    },
-    {
-      id: 'sql-join',
-      question: 'What does an INNER JOIN return?',
-      answer: 'It returns only the rows where the join condition matches in both tables.',
-    },
-    {
-      id: 'database-index',
-      question: 'Why would a database use an index?',
-      answer: 'An index helps the database find rows faster, although it adds storage cost and can make writes slightly slower.',
-    },
-    {
-      id: 'acid',
-      question: 'What does ACID describe in a transaction?',
-      answer: 'ACID describes Atomicity, Consistency, Isolation, and Durability—the properties that make transactions reliable.',
-    },
-  ],
-  'ai-foundations': [
-    {
-      id: 'supervised-learning',
-      question: 'What is supervised learning?',
-      answer: 'Supervised learning trains a model with labelled examples so it can learn to predict labels for new inputs.',
-    },
-    {
-      id: 'overfitting',
-      question: 'What is overfitting?',
-      answer: 'Overfitting happens when a model memorizes training data too closely and performs poorly on unseen data.',
-    },
-    {
-      id: 'feature',
-      question: 'What is a feature in machine learning?',
-      answer: 'A feature is an input variable or measurable property used by a model to make a prediction.',
-    },
-    {
-      id: 'validation-set',
-      question: 'Why use a validation set?',
-      answer: 'A validation set helps compare model choices and tune settings without using the final test data.',
-    },
-    {
-      id: 'precision',
-      question: 'What does precision measure?',
-      answer: 'Precision measures how many of the items predicted as positive were actually positive.',
-    },
-  ],
-}
-
-function getCardsForDeck(deckId) {
-  return CARD_SETS[deckId] || CARD_SETS['computer-networks']
+function getCardsForDeck(deck) {
+  return Array.isArray(deck?.cards) ? deck.cards : []
 }
 
 function CardFace({ card, cardNumber, total, flipped, animatedStyle }) {
@@ -248,7 +164,7 @@ function RatingButton({ label, iconName, tone, disabled, onPress }) {
   )
 }
 
-function CompletionView({ knownCount, learningCount, onRestart, onBack }) {
+function CompletionView({ knownCount, learningCount, onRestart, onBack, canSave, onSave }) {
   const total = knownCount + learningCount
   const accuracy = total > 0 ? Math.round((knownCount / total) * 100) : 0
 
@@ -278,13 +194,23 @@ function CompletionView({ knownCount, learningCount, onRestart, onBack }) {
         </View>
       </View>
 
+      {canSave ? (
+        <Pressable
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+          onPress={onSave}
+          accessibilityRole="button"
+          accessibilityLabel="Save this flashcard deck with a name"
+        >
+          <Text style={styles.primaryButtonText}>Save with title</Text>
+        </Pressable>
+      ) : null}
       <Pressable
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+        style={({ pressed }) => [canSave ? styles.secondaryPrimaryButton : styles.primaryButton, pressed && styles.primaryButtonPressed]}
         onPress={onRestart}
         accessibilityRole="button"
         accessibilityLabel="Study this deck again"
       >
-        <Text style={styles.primaryButtonText}>Study Again</Text>
+        <Text style={canSave ? styles.secondaryPrimaryButtonText : styles.primaryButtonText}>Study Again</Text>
       </Pressable>
       <Pressable
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
@@ -299,7 +225,9 @@ function CompletionView({ knownCount, learningCount, onRestart, onBack }) {
   )
 }
 
-function StopStudyModal({ visible, onCancel, onConfirm }) {
+function StopStudyModal({ visible, isTemporaryDeck, canSaveProgress, onCancel, onSave, onConfirm }) {
+  const isResumedDeck = !isTemporaryDeck && canSaveProgress
+  const canSave = isTemporaryDeck
   return (
     <Modal
       transparent
@@ -314,10 +242,25 @@ function StopStudyModal({ visible, onCancel, onConfirm }) {
           <View style={styles.confirmationIcon}>
             <LineIcon name="pause" size={23} color="#438C31" />
           </View>
-          <Text style={styles.confirmationTitle}>Stop this session?</Text>
-          <Text style={styles.confirmationCopy}>Your progress will be lost.</Text>
+          <Text style={styles.confirmationTitle}>
+            {isTemporaryDeck ? 'Save this deck first?' : isResumedDeck ? 'Your progress is saved' : 'Stop this session?'}
+          </Text>
+          <Text style={styles.confirmationCopy}>
+            {isTemporaryDeck
+              ? 'Save it with a name if you would like to find it later.'
+              : isResumedDeck ? 'You can continue from this card later.' : 'Your progress will be lost.'}
+          </Text>
 
-          <View style={styles.confirmationButtonRow}>
+          <View style={canSave || isResumedDeck ? styles.confirmationButtonColumn : styles.confirmationButtonRow}>
+            {canSave ? (
+              <Pressable
+                style={({ pressed }) => [styles.confirmationButton, styles.confirmationSaveButton, pressed && styles.confirmationButtonPressed]}
+                onPress={onSave}
+                accessibilityRole="button"
+              >
+                <Text style={styles.confirmationStopText}>Save &amp; leave</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               style={({ pressed }) => [
                 styles.confirmationButton,
@@ -332,13 +275,15 @@ function StopStudyModal({ visible, onCancel, onConfirm }) {
             <Pressable
               style={({ pressed }) => [
                 styles.confirmationButton,
-                styles.confirmationStopButton,
+                isResumedDeck ? styles.confirmationSaveButton : styles.confirmationStopButton,
                 pressed && styles.confirmationButtonPressed,
               ]}
               onPress={onConfirm}
               accessibilityRole="button"
             >
-              <Text style={styles.confirmationStopText}>Stop</Text>
+              <Text style={styles.confirmationStopText}>
+                {isTemporaryDeck ? 'Leave without saving' : isResumedDeck ? 'Return to Flashcards' : 'Stop'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -347,23 +292,90 @@ function StopStudyModal({ visible, onCancel, onConfirm }) {
   )
 }
 
-export default function StudyCardsScreen({ deck, onBack }) {
+function SaveDeckModal({ visible, defaultTitle, isSaving, error, onClose, onSave }) {
+  const [title, setTitle] = useState(defaultTitle)
+
+  useEffect(() => {
+    if (visible) setTitle(defaultTitle)
+  }, [defaultTitle, visible])
+
+  const submit = () => {
+    const trimmedTitle = title.trim()
+    if (trimmedTitle) onSave(trimmedTitle)
+  }
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={styles.confirmationOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={styles.confirmationBackdrop} onPress={isSaving ? undefined : onClose} />
+        <View style={styles.confirmationCard} accessibilityViewIsModal>
+          <Text style={styles.confirmationTitle}>Name your flashcard deck</Text>
+          <Text style={styles.confirmationCopy}>Save this deck to Flashcards with a name.</Text>
+          <TextInput
+            autoCapitalize="sentences"
+            autoFocus
+            editable={!isSaving}
+            maxLength={120}
+            onChangeText={setTitle}
+            onSubmitEditing={submit}
+            placeholder="Deck name"
+            placeholderTextColor="#899187"
+            returnKeyType="done"
+            style={styles.titleInput}
+            value={title}
+            accessibilityLabel="Flashcard deck name"
+          />
+          {error ? <Text style={styles.saveErrorText}>{error}</Text> : null}
+          <View style={styles.confirmationButtonRow}>
+            <Pressable style={({ pressed }) => [styles.confirmationButton, styles.confirmationCancelButton, pressed && !isSaving && styles.confirmationButtonPressed]} disabled={isSaving} onPress={onClose} accessibilityRole="button">
+              <Text style={styles.confirmationCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.confirmationButton, styles.confirmationSaveButton, pressed && !isSaving && styles.confirmationButtonPressed]} disabled={isSaving || !title.trim()} onPress={submit} accessibilityRole="button" accessibilityState={{ disabled: isSaving || !title.trim(), busy: isSaving }}>
+              {isSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+              <Text style={styles.confirmationStopText}>{isSaving ? 'Saving…' : 'Save deck'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  )
+}
+
+function getRestoredProgress(cards, checkpoint) {
+  const reviews = Array.isArray(checkpoint?.reviews) ? checkpoint.reviews : []
+  const validCardIds = new Set(cards.map((card) => card.id))
+  const ratings = reviews.reduce((result, review) => {
+    if (!validCardIds.has(review.cardId)) return result
+    if (review.rating !== 'known' && review.rating !== 'learning') return result
+    result[review.cardId] = { rating: review.rating, reviewedAt: review.reviewedAt }
+    return result
+  }, {})
+  const nextUnreviewedIndex = cards.findIndex((card) => !ratings[card.id])
+  return { ratings, nextUnreviewedIndex }
+}
+
+export default function StudyCardsScreen({ deck, onBack, onReview, onSaveTemporaryDeck, onSaveProgress, onClearProgress }) {
   const { width: screenWidth } = useWindowDimensions()
   const deckName = deck?.name || 'Flashcards'
-  const cards = useMemo(() => getCardsForDeck(deck?.id), [deck?.id])
+  const cards = useMemo(() => getCardsForDeck(deck), [deck])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [ratings, setRatings] = useState({})
+  const [isSavingReview, setIsSavingReview] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [showStopModal, setShowStopModal] = useState(false)
+  const [showSaveDeckModal, setShowSaveDeckModal] = useState(false)
+  const [isSavingDeck, setIsSavingDeck] = useState(false)
+  const [saveDeckError, setSaveDeckError] = useState('')
   const completionTransition = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
-    setCurrentIndex(0)
+    const restoredProgress = getRestoredProgress(cards, deck?.resumeCheckpoint)
+    setCurrentIndex(Math.max(0, restoredProgress.nextUnreviewedIndex))
     setFlipped(false)
-    setRatings({})
-    setIsComplete(false)
-  }, [deck?.id])
+    setRatings(restoredProgress.ratings)
+    setIsComplete(cards.length > 0 && restoredProgress.nextUnreviewedIndex < 0)
+  }, [deck?.id, deck?.resumeCheckpoint])
 
   useLayoutEffect(() => {
     completionTransition.stopAnimation()
@@ -389,21 +401,45 @@ export default function StudyCardsScreen({ deck, onBack }) {
   }, [completionTransition, isComplete])
 
   const currentCard = cards[currentIndex]
+  const isTemporaryDeck = deck?.isTemporary === true
+  const canSaveProgress = !isTemporaryDeck && Boolean(deck?.resumeCheckpoint)
   const ratedCount = Object.keys(ratings).length
-  const knownCount = Object.values(ratings).filter((rating) => rating === 'known').length
-  const learningCount = Object.values(ratings).filter((rating) => rating === 'learning').length
+  const knownCount = Object.values(ratings).filter((review) => review.rating === 'known').length
+  const learningCount = Object.values(ratings).filter((review) => review.rating === 'learning').length
   const progressPercent = cards.length > 0 ? Math.round((ratedCount / cards.length) * 100) : 0
 
-  const handleRating = (rating) => {
-    if (!flipped || !currentCard) return
+  const handleRating = async (rating) => {
+    if (!flipped || !currentCard || isSavingReview) return
+
+    const reviewedAt = new Date().toISOString()
+    setIsSavingReview(true)
+    try {
+      if (!isTemporaryDeck) {
+        const saved = await onReview?.({
+          flashcardId: currentCard.id,
+          confidence: rating === 'known' ? 3 : 0,
+          reviewedAt,
+        })
+        if (saved === false) return
+      }
+    } catch (error) {
+      Alert.alert('Review not saved', error?.message || 'Check your connection and try again.')
+      return
+    } finally {
+      setIsSavingReview(false)
+    }
 
     setRatings((previousRatings) => ({
       ...previousRatings,
-      [currentCard.id]: rating,
+      [currentCard.id]: { rating, reviewedAt },
     }))
 
     if (currentIndex >= cards.length - 1) {
       setIsComplete(true)
+      if (isTemporaryDeck) setShowSaveDeckModal(true)
+      if (canSaveProgress) {
+        void onClearProgress?.().catch((error) => console.warn('Flashcard progress could not be cleared', error))
+      }
       return
     }
 
@@ -416,6 +452,56 @@ export default function StudyCardsScreen({ deck, onBack }) {
     setFlipped(false)
     setRatings({})
     setIsComplete(false)
+    if (canSaveProgress) {
+      void onClearProgress?.().catch((error) => console.warn('Flashcard progress could not be cleared', error))
+    }
+  }
+
+  const openSaveDeckModal = () => {
+    setShowStopModal(false)
+    setSaveDeckError('')
+    setShowSaveDeckModal(true)
+  }
+
+  const handleSaveDeck = async (title) => {
+    if (!isTemporaryDeck || isSavingDeck) return
+
+    setIsSavingDeck(true)
+    setSaveDeckError('')
+    try {
+      const reviews = Object.entries(ratings).map(([cardId, review]) => ({
+        cardId,
+        confidence: review.rating === 'known' ? 3 : 0,
+        reviewedAt: review.reviewedAt,
+      }))
+      const saved = await onSaveTemporaryDeck?.({ title, reviews })
+      if (saved === false) return
+      setShowSaveDeckModal(false)
+      setShowStopModal(false)
+      onBack()
+    } catch (error) {
+      setSaveDeckError(error?.message || 'The deck could not be saved. Please try again.')
+    } finally {
+      setIsSavingDeck(false)
+    }
+  }
+
+  const handleSaveProgress = async () => {
+    if (!canSaveProgress) return
+
+    try {
+      const reviews = Object.entries(ratings).map(([cardId, review]) => ({
+        cardId,
+        rating: review.rating,
+        reviewedAt: review.reviewedAt,
+      }))
+      const saved = await onSaveProgress?.({ reviews })
+      if (saved === false) return
+      setShowStopModal(false)
+      onBack()
+    } catch (error) {
+      Alert.alert('Progress not saved', error?.message || 'Check your connection and try again.')
+    }
   }
 
   const handleBackPress = () => {
@@ -427,8 +513,19 @@ export default function StudyCardsScreen({ deck, onBack }) {
     setShowStopModal(true)
   }
 
-  const handleStopConfirm = () => {
+  const handleStopConfirm = async () => {
+    if (canSaveProgress) {
+      await handleSaveProgress()
+      return
+    }
     setShowStopModal(false)
+    onBack()
+  }
+
+  const handleCompletionBack = () => {
+    if (canSaveProgress) {
+      void onClearProgress?.().catch((error) => console.warn('Flashcard progress could not be cleared', error))
+    }
     onBack()
   }
 
@@ -464,7 +561,9 @@ export default function StudyCardsScreen({ deck, onBack }) {
             knownCount={knownCount}
             learningCount={learningCount}
             onRestart={handleRestart}
-            onBack={onBack}
+            onBack={handleCompletionBack}
+            canSave={isTemporaryDeck}
+            onSave={openSaveDeckModal}
           />
         </Animated.View>
       ) : (
@@ -506,14 +605,14 @@ export default function StudyCardsScreen({ deck, onBack }) {
                   label="Still learning"
                   iconName="x"
                   tone="learning"
-                  disabled={!flipped}
+                  disabled={!flipped || isSavingReview}
                   onPress={() => handleRating('learning')}
                 />
                 <RatingButton
                   label="I know this"
                   iconName="check"
                   tone="known"
-                  disabled={!flipped}
+                  disabled={!flipped || isSavingReview}
                   onPress={() => handleRating('known')}
                 />
               </View>
@@ -529,8 +628,19 @@ export default function StudyCardsScreen({ deck, onBack }) {
       </SafeAreaView>
       <StopStudyModal
         visible={showStopModal}
+        isTemporaryDeck={isTemporaryDeck}
+        canSaveProgress={canSaveProgress}
         onCancel={() => setShowStopModal(false)}
+        onSave={isTemporaryDeck ? openSaveDeckModal : handleSaveProgress}
         onConfirm={handleStopConfirm}
+      />
+      <SaveDeckModal
+        visible={showSaveDeckModal}
+        defaultTitle={deckName}
+        isSaving={isSavingDeck}
+        error={saveDeckError}
+        onClose={() => { if (!isSavingDeck) setShowSaveDeckModal(false) }}
+        onSave={handleSaveDeck}
       />
     </View>
   )

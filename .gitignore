@@ -36,6 +36,9 @@ yarn-error.*
 !.env.example
 .envrc
 
+# Supabase CLI local metadata
+/supabase/.temp/
+
 # credentials and signing material
 credentials.json
 credentials*.json

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Alert, AppState, Pressable, ScrollView, Text, View } from 'react-native'
+import { Alert, Animated, AppState, Easing, Pressable, ScrollView, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
@@ -14,6 +14,7 @@ const TIMER_MODES = [
 const RING_SIZE = 250
 const STROKE_WIDTH = 10
 const WHEEL_ITEM_HEIGHT = 44
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
 function formatTime(seconds) {
   const safeSeconds = Math.max(0, Math.floor(seconds))
@@ -136,6 +137,27 @@ function ProgressRing({ progress, showProgress = true, children }) {
   const safeProgress = Number.isFinite(numericProgress)
     ? Math.max(0, Math.min(numericProgress, 100))
     : 0
+  const animatedProgress = useRef(new Animated.Value(safeProgress)).current
+
+  useEffect(() => {
+    animatedProgress.stopAnimation()
+    const animation = Animated.timing(animatedProgress, {
+      toValue: safeProgress,
+      duration: 900,
+      easing: Easing.linear,
+      useNativeDriver: false,
+      isInteraction: false,
+    })
+
+    animation.start()
+
+    return () => animation.stop()
+  }, [animatedProgress, safeProgress])
+
+  const animatedStrokeDashoffset = animatedProgress.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+  })
 
   return (
     <View
@@ -145,7 +167,7 @@ function ProgressRing({ progress, showProgress = true, children }) {
     >
       <Svg width={RING_SIZE} height={RING_SIZE} style={styles.timerSvg}>
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={radius} fill="none" stroke="#E7EEE3" strokeWidth={STROKE_WIDTH} />
-        <Circle
+        <AnimatedCircle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
           r={radius}
@@ -153,7 +175,7 @@ function ProgressRing({ progress, showProgress = true, children }) {
           stroke="#76C457"
           strokeWidth={STROKE_WIDTH}
           strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - safeProgress / 100)}
+          strokeDashoffset={animatedStrokeDashoffset}
           rotation={-90}
           originX={RING_SIZE / 2}
           originY={RING_SIZE / 2}
@@ -410,6 +432,7 @@ export default function StudyTimerScreen({
     const now = Date.now()
     timing.startedAtMs = now
     timing.isRunning = true
+    setCustomOpen(false)
     setIsRunning(true)
     syncTimer(now)
   }
@@ -505,14 +528,6 @@ export default function StudyTimerScreen({
     styles.miniProgressFill,
     { width: `${liveDailyProgressPercent}%` },
   ]
-  const modeHint = isRunning
-    ? 'Pause before changing timer mode.'
-    : !isFresh
-      ? 'Switching mode starts a new timer.'
-      : isCountdown
-        ? 'Set a duration and count down to zero.'
-        : 'Start at zero and count up as you study.'
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -566,12 +581,11 @@ export default function StudyTimerScreen({
                 )
               })}
             </View>
-            <Text style={styles.modeHint}>
-              {modeHint}
-            </Text>
           </View>
 
-          <Text style={styles.timerLabel}>{subjectName} · Focus Session</Text>
+          <View style={styles.subjectHeading}>
+            <Text style={styles.timerLabel} numberOfLines={2}>{subjectName}</Text>
+          </View>
 
           <ProgressRing progress={progress} showProgress={isCountdown}>
             <Text
@@ -603,7 +617,12 @@ export default function StudyTimerScreen({
               accessibilityRole="button"
               accessibilityLabel={isRunning ? 'Pause timer' : 'Start timer'}
             >
-              <LineIcon name={isRunning ? 'pause' : 'play'} size={16} color="#FFFFFF" />
+              <LineIcon
+                name={isRunning ? 'pause' : 'play'}
+                size={16}
+                color="#FFFFFF"
+                fill={isRunning ? 'none' : '#FFFFFF'}
+              />
               <Text style={styles.primaryButtonText}>{isRunning ? 'Pause' : isFresh ? 'Start' : 'Resume'}</Text>
             </Pressable>
             <Pressable
@@ -612,13 +631,14 @@ export default function StudyTimerScreen({
               accessibilityRole="button"
               accessibilityLabel="End study session"
             >
-              <LineIcon name="stop" size={16} color="#E05252" />
+              <LineIcon name="stop" size={16} color="#E05252" fill="#E05252" />
               <Text style={styles.dangerButtonText}>End Session</Text>
             </Pressable>
           </View>
 
           {isCountdown ? (
-            <>
+            !isRunning && isFresh ? (
+              <>
               <View style={styles.presets}>
                 {PRESETS.map((minutes) => (
                   <Pressable
@@ -664,13 +684,9 @@ export default function StudyTimerScreen({
                   {customError ? <Text style={styles.customError} accessibilityLiveRegion="polite">{customError}</Text> : null}
                 </View>
               )}
-            </>
-          ) : (
-            <View style={styles.stopwatchInfo} accessible accessibilityRole="text">
-              <LineIcon name="clock" size={16} color="#438C31" />
-              <Text style={styles.stopwatchInfoText}>Stopwatch starts at 00:00</Text>
-            </View>
-          )}
+              </>
+            ) : null
+          ) : null}
 
           <View style={styles.focusCard}>
             <View style={styles.focusHeader}>

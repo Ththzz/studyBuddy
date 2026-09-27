@@ -258,19 +258,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  exitButton: {
-    minHeight: 44,
-    marginTop: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  exitButtonText: {
-    color: '#438C31',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
   buttonPressed: {
     opacity: 0.72,
     transform: [{ scale: 0.98 }],

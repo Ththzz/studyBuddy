@@ -1,0 +1,30 @@
+services:
+  - type: web
+    runtime: node
+    name: studybuddy-ai-middleware
+    region: singapore
+    plan: free
+    rootDir: middleware
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_BASE_URL
+        value: https://ai.psu.blue/v1
+      - key: AI_MODEL
+        value: openai/gpt-5.6-luna
+      - key: AI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: AI_REQUEST_TIMEOUT_MS
+        value: "90000"
+      - key: AI_RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: AI_RATE_LIMIT_MAX_REQUESTS
+        value: "40"

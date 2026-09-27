@@ -1,36 +1,9 @@
 import React, { useMemo, useState } from 'react'
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LineIcon from '../components/lineIcon'
 import styles from '../styles/flashcardsScreenStyles'
-
-const DECKS = [
-  {
-    id: 'computer-networks',
-    name: 'Computer Networks',
-    subtitle: '32 cards · Last studied today',
-    mastery: 72,
-    color: '#76C457',
-    coverColor: '#EAF6E4',
-  },
-  {
-    id: 'database',
-    name: 'Database essentials',
-    subtitle: '24 cards · Last studied yesterday',
-    mastery: 48,
-    color: '#4D8DDF',
-    coverColor: '#E5EFFC',
-  },
-  {
-    id: 'ai-foundations',
-    name: 'AI foundations',
-    subtitle: '18 cards · Last studied Monday',
-    mastery: 91,
-    color: '#F59E42',
-    coverColor: '#FFF0D9',
-  },
-]
 
 function FilterChip({ label, selected, onPress }) {
   return (
@@ -81,26 +54,60 @@ function DeckCard({ deck, onPress }) {
   )
 }
 
-export default function FlashcardsScreen({ onBack, onStudyDeck, onCreateDeck }) {
+export default function FlashcardsScreen({
+  decks = [],
+  loadState = 'ready',
+  loadError = null,
+  onRetry,
+  onBack,
+  onStudyDeck,
+  onCreateDeck,
+}) {
   const [query, setQuery] = useState('')
   const [subjectFilter, setSubjectFilter] = useState('All decks')
+  const [sortMode, setSortMode] = useState('recent')
+  const filters = useMemo(() => [
+    'All decks',
+    ...Array.from(new Set(decks.map((deck) => deck.name).filter((name) => name && name !== 'All decks'))),
+  ], [decks])
 
   const filteredDecks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    return DECKS.filter((deck) => {
+    const nextDecks = decks.filter((deck) => {
       const matchesQuery = !normalizedQuery || deck.name.toLowerCase().includes(normalizedQuery)
-      const matchesSubject = subjectFilter === 'All decks'
-        || (subjectFilter === 'Computer Networks' && deck.id === 'computer-networks')
-        || (subjectFilter === 'Database' && deck.id === 'database')
+      const matchesSubject = subjectFilter === 'All decks' || deck.name === subjectFilter
 
       return matchesQuery && matchesSubject
     })
-  }, [query, subjectFilter])
+
+    if (sortMode === 'mastery') {
+      return [...nextDecks].sort((left, right) => right.mastery - left.mastery)
+    }
+
+    if (sortMode === 'name') {
+      return [...nextDecks].sort((left, right) => left.name.localeCompare(right.name))
+    }
+
+    return [...nextDecks].sort((left, right) => (
+      new Date(right.latestReviewedAt || right.createdAt || 0).getTime()
+      - new Date(left.latestReviewedAt || left.createdAt || 0).getTime()
+    ))
+  }, [decks, query, sortMode, subjectFilter])
 
   const handleSort = () => {
-    Alert.alert('Sort decks', 'Deck sorting will be connected in the next step.', [{ text: 'OK' }])
+    setSortMode((currentMode) => {
+      if (currentMode === 'recent') return 'mastery'
+      if (currentMode === 'mastery') return 'name'
+      return 'recent'
+    })
   }
+
+  const sortLabel = sortMode === 'mastery'
+    ? 'Mastery'
+    : sortMode === 'name'
+      ? 'Name'
+      : 'Recent'
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
@@ -160,7 +167,7 @@ export default function FlashcardsScreen({ onBack, onStudyDeck, onCreateDeck }) 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRow}
         >
-          {['All decks', 'Computer Networks', 'Database'].map((filter) => (
+          {filters.map((filter) => (
             <FilterChip
               key={filter}
               label={filter}
@@ -176,21 +183,44 @@ export default function FlashcardsScreen({ onBack, onStudyDeck, onCreateDeck }) 
             style={({ pressed }) => [styles.sortButton, pressed && styles.sortButtonPressed]}
             onPress={handleSort}
             accessibilityRole="button"
-            accessibilityLabel="Sort flashcard decks"
+            accessibilityLabel={`Sort flashcard decks by ${sortLabel}`}
+            accessibilityHint="Tap to switch between Recent, Mastery, and Name"
           >
-            <Text style={styles.sortText}>Sort</Text>
+            <Text style={styles.sortText}>{sortLabel}</Text>
           </Pressable>
         </View>
 
-        {filteredDecks.length > 0 ? filteredDecks.map((deck) => (
+        {loadState === 'loading' ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Loading your decks</Text>
+            <Text style={styles.emptyCopy}>Your saved flashcards will appear here.</Text>
+          </View>
+        ) : loadState === 'error' ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Could not load decks</Text>
+            <Text style={styles.emptyCopy}>{loadError || 'Check your connection and try again.'}</Text>
+            <Pressable
+              style={({ pressed }) => [styles.createButton, pressed && styles.buttonPressed]}
+              onPress={onRetry}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading flashcard decks"
+            >
+              <Text style={styles.createButtonText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : filteredDecks.length > 0 ? filteredDecks.map((deck) => (
           <DeckCard key={deck.id} deck={deck} onPress={onStudyDeck} />
         )) : (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
               <LineIcon name="cards" size={24} color="#438C31" />
             </View>
-            <Text style={styles.emptyTitle}>No decks found</Text>
-            <Text style={styles.emptyCopy}>Try another search or create a new deck from your notes.</Text>
+            <Text style={styles.emptyTitle}>{decks.length === 0 ? 'No flashcard decks yet' : 'No decks found'}</Text>
+            <Text style={styles.emptyCopy}>
+              {decks.length === 0
+                ? 'Generate cards from your notes or create a deck to get started.'
+                : 'Try another search or create a new deck from your notes.'}
+            </Text>
           </View>
         )}
 

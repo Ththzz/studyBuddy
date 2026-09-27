@@ -151,15 +151,17 @@ function WeeklyActivity({ days }) {
 
       <View style={styles.chart}>
         {days.map((day) => (
-          <View key={day.key} style={styles.chartColumn}>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  { height: `${Math.max(8, (day.seconds / maxSeconds) * 100)}%` },
-                ]}
-              />
-            </View>
+            <View key={day.key} style={styles.chartColumn}>
+              <View style={styles.barTrack}>
+                {day.seconds > 0 ? (
+                  <View
+                    style={[
+                      styles.barFill,
+                      { height: `${(day.seconds / maxSeconds) * 100}%` },
+                    ]}
+                  />
+                ) : null}
+              </View>
             <Text style={styles.chartLabel}>{day.label}</Text>
           </View>
         ))}

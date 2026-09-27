@@ -63,8 +63,28 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
 
+  createSubjectButton: {
+    minHeight: 46,
+    marginTop: 22,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderWidth: 1.5,
+    borderColor: '#B8D5AE',
+    borderRadius: 13,
+    backgroundColor: '#FBFEF9',
+  },
+
+  createSubjectButtonText: {
+    color: '#438C31',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
   optionList: {
-    marginTop: 28,
+    marginTop: 16,
     gap: 10,
   },
 

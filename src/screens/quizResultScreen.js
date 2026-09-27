@@ -19,12 +19,6 @@ function formatDuration(totalSeconds) {
   return `${seconds}s`
 }
 
-function getResultMessage(accuracy) {
-  if (accuracy >= 80) return 'You’re getting sharper.'
-  if (accuracy >= 50) return 'Good progress. Keep going.'
-  return 'Every question is a chance to improve.'
-}
-
 function StatCard({ label, value, iconName, tone = 'green' }) {
   return (
     <View style={styles.statCard}>
@@ -40,6 +34,9 @@ function StatCard({ label, value, iconName, tone = 'green' }) {
 export default function QuizResultScreen({
   result = {},
   config = {},
+  saveState = 'idle',
+  saveError,
+  onRetrySave,
   onReviewAnswers,
   onTryAgain,
   onBack,
@@ -79,11 +76,9 @@ export default function QuizResultScreen({
         overScrollMode="always"
       >
         <View style={styles.resultHero}>
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scoreValue}>{score} / {totalQuestions}</Text>
-            <Text style={styles.scoreLabel}>Correct answers</Text>
-          </View>
-          <Text style={styles.resultTitle}>{getResultMessage(accuracy)}</Text>
+          <Text style={styles.quizName} numberOfLines={2}>{fileName}</Text>
+          <Text style={styles.scoreSummary}>{score} / {totalQuestions}</Text>
+          <Text style={styles.scoreLabel}>Correct answers</Text>
           <Text style={styles.resultCopy}>{subjectName} · {durationLabel}</Text>
         </View>
 
@@ -94,17 +89,20 @@ export default function QuizResultScreen({
           <StatCard label="Accuracy" value={`${accuracy}%`} iconName="chart" />
         </View>
 
-        <View style={styles.insightCard}>
-          <View style={styles.insightIcon}>
-            <LineIcon name="chart" size={17} color="#438C31" />
+        {saveState === 'error' ? (
+          <View style={styles.saveErrorCard}>
+            <Text style={styles.saveErrorTitle}>Quiz result not saved</Text>
+            <Text style={styles.saveErrorCopy}>{saveError}</Text>
+            <Pressable
+              style={({ pressed }) => [styles.retrySaveButton, pressed && styles.buttonPressed]}
+              onPress={onRetrySave}
+              accessibilityRole="button"
+              accessibilityLabel="Retry saving quiz result"
+            >
+              <Text style={styles.retrySaveButtonText}>Retry save</Text>
+            </Pressable>
           </View>
-          <View style={styles.insightCopy}>
-            <Text style={styles.insightTitle}>{fileName}</Text>
-            <Text style={styles.insightText}>
-              Review the explanations and try another round when you’re ready.
-            </Text>
-          </View>
-        </View>
+        ) : null}
 
         <Pressable
           style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
@@ -121,14 +119,6 @@ export default function QuizResultScreen({
           accessibilityLabel="Try the quiz again"
         >
           <Text style={styles.secondaryButtonText}>Try Again</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.textButton, pressed && styles.buttonPressed]}
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Back to home"
-        >
-          <Text style={styles.textButtonText}>Back to Home</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

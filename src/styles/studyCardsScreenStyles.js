@@ -341,6 +341,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  secondaryPrimaryButton: {
+    width: '100%',
+    minHeight: 52,
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#C5DFBC',
+    borderRadius: 15,
+    backgroundColor: '#F0F8EC',
+  },
+
+  secondaryPrimaryButtonText: {
+    color: '#438C31',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
   secondaryButton: {
     minHeight: 48,
     marginTop: 7,
@@ -424,6 +442,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  confirmationButtonColumn: {
+    width: '100%',
+    marginTop: 22,
+    gap: 10,
+  },
+
   confirmationButton: {
     flex: 1,
     minHeight: 48,
@@ -442,6 +466,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#C65C52',
   },
 
+  confirmationSaveButton: {
+    backgroundColor: '#438C31',
+  },
+
   confirmationButtonPressed: {
     opacity: 0.78,
     transform: [{ scale: 0.98 }],
@@ -457,6 +485,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
+  },
+
+  titleInput: {
+    width: '100%',
+    minHeight: 48,
+    marginTop: 18,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+    borderColor: '#DDE7D9',
+    borderRadius: 12,
+    backgroundColor: '#FBFCFA',
+    color: '#151A15',
+    fontSize: 14,
+  },
+
+  saveErrorText: {
+    width: '100%',
+    marginTop: 10,
+    color: '#A73737',
+    fontSize: 12,
+    lineHeight: 17,
   },
 })
 

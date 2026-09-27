@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LineIcon from '../components/lineIcon';
 import styles from '../styles/goalSetupScreenStyles';
 
 const GOAL_OPTIONS = [
@@ -23,13 +22,6 @@ const GOAL_OPTIONS = [
 ];
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-const SUBJECTS = [
-  'Computer Networks',
-  'Database',
-  'Artificial Intelligence',
-  'Software Engineering',
-];
 
 function formatGoal(minutes) {
   if (minutes >= 60) {
@@ -46,11 +38,6 @@ function formatGoal(minutes) {
 export default function GoalSetupScreen({ onBack, onFinish }) {
   const [goalMinutes, setGoalMinutes] = useState(120);
   const [selectedDays, setSelectedDays] = useState([0, 1, 2, 3, 4]);
-  const [selectedSubjects, setSelectedSubjects] = useState([
-    'Computer Networks',
-    'Database',
-    'Artificial Intelligence',
-  ]);
   const [customGoalOpen, setCustomGoalOpen] = useState(false);
   const [customGoalInput, setCustomGoalInput] = useState('120');
   const [customGoalError, setCustomGoalError] = useState('');
@@ -60,14 +47,6 @@ export default function GoalSetupScreen({ onBack, onFinish }) {
       currentDays.includes(index)
         ? currentDays.filter((day) => day !== index)
         : [...currentDays, index].sort(),
-    );
-  };
-
-  const toggleSubject = (subject) => {
-    setSelectedSubjects((currentSubjects) =>
-      currentSubjects.includes(subject)
-        ? currentSubjects.filter((item) => item !== subject)
-        : [...currentSubjects, subject],
     );
   };
 
@@ -89,7 +68,6 @@ export default function GoalSetupScreen({ onBack, onFinish }) {
     onFinish?.({
       dailyTargetMinutes: goalMinutes,
       studyDays: selectedDays,
-      subjects: selectedSubjects,
     });
   };
 
@@ -253,42 +231,6 @@ export default function GoalSetupScreen({ onBack, onFinish }) {
                       ]}
                     >
                       {day}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Main subjects</Text>
-
-            <View style={styles.subjectChips}>
-              {SUBJECTS.map((subject) => {
-                const isActive = selectedSubjects.includes(subject);
-
-                return (
-                  <Pressable
-                    key={subject}
-                    style={({ pressed }) => [
-                      styles.subjectChip,
-                      isActive && styles.subjectChipActive,
-                      pressed && styles.pressedChoice,
-                    ]}
-                    onPress={() => toggleSubject(subject)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isActive }}
-                  >
-                    {isActive ? (
-                      <LineIcon name="check" size={14} color="#438C31" />
-                    ) : null}
-                    <Text
-                      style={[
-                        styles.subjectChipText,
-                        isActive && styles.subjectChipTextActive,
-                      ]}
-                    >
-                      {subject}
                     </Text>
                   </Pressable>
                 );

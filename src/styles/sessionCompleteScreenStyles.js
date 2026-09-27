@@ -168,18 +168,6 @@ const styles = StyleSheet.create({
       fontWeight: '800',
     },
 
-    textButton: {
-      minHeight: 42,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    textButtonText: {
-      color: '#697269',
-      fontSize: 14,
-      fontWeight: '700',
-    },
-
     buttonPressed: {
       opacity: 0.7,
       transform: [{ scale: 0.98 }],

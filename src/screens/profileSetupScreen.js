@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,9 +12,17 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { pickProfileImage } from '../utils/profileImagePicker';
 import styles from '../styles/profileSetupScreenStyles';
 
-const YEAR_OPTIONS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Other'];
+const YEAR_OPTIONS = [
+  'Year 1',
+  'Year 2',
+  'Year 3',
+  'Year 4',
+  'Year 5',
+  'Year 6',
+];
 
 function FormField({ label, value, placeholder, onChangeText }) {
   return (
@@ -32,6 +42,7 @@ function FormField({ label, value, placeholder, onChangeText }) {
 
 export default function ProfileSetupScreen({
   initialName = 'Alex',
+  initialAvatarUri = null,
   onBack,
   onContinue,
   onUpload,
@@ -40,20 +51,37 @@ export default function ProfileSetupScreen({
   const [university, setUniversity] = useState('PSU');
   const [major, setMajor] = useState('Computer Science');
   const [year, setYear] = useState('Year 2');
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [avatarUri, setAvatarUri] = useState(initialAvatarUri);
+  const [isPicking, setIsPicking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleUpload = () => {
-    setHasPhoto(true);
-    onUpload?.();
+  const handleUpload = async () => {
+    if (isPicking) return;
+
+    setIsPicking(true);
+    const nextAvatarUri = await pickProfileImage();
+    if (nextAvatarUri) {
+      setAvatarUri(nextAvatarUri);
+      onUpload?.(nextAvatarUri);
+    }
+    setIsPicking(false);
   };
 
-  const handleContinue = () => {
-    onContinue?.({
-      fullName: fullName.trim(),
-      university: university.trim(),
-      major: major.trim(),
-      year,
-    });
+  const handleContinue = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
+    try {
+      await onContinue?.({
+        fullName: fullName.trim(),
+        university: university.trim(),
+        major: major.trim(),
+        year,
+        avatarUri,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -106,28 +134,43 @@ export default function ProfileSetupScreen({
           <View style={styles.form}>
             <View style={styles.profileUpload}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {hasPhoto ? '✓' : fullName.trim().charAt(0).toUpperCase() || 'A'}
-                </Text>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>
+                    {fullName.trim().charAt(0).toUpperCase() || 'A'}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.uploadCopy}>
                 <Text style={styles.uploadTitle}>Profile picture</Text>
                 <Text style={styles.uploadDescription}>
-                  {hasPhoto ? 'Ready to use' : 'Optional — make it yours'}
+                  {isPicking
+                    ? 'Opening your photos…'
+                    : avatarUri
+                      ? 'Photo selected'
+                      : 'Optional — make it yours'}
                 </Text>
               </View>
 
               <Pressable
                 style={({ pressed }) => [
                   styles.uploadButton,
-                  pressed && styles.pressed,
+                  isPicking && styles.uploadButtonDisabled,
+                  pressed && !isPicking && styles.pressed,
                 ]}
                 onPress={handleUpload}
+                disabled={isPicking}
+                accessibilityRole="button"
+                accessibilityLabel={avatarUri ? 'Change profile picture' : 'Upload profile picture'}
+                accessibilityState={{ disabled: isPicking }}
               >
-                <Text style={styles.uploadButtonText}>
-                  {hasPhoto ? 'Change' : 'Upload'}
-                </Text>
+                {isPicking ? (
+                  <ActivityIndicator size="small" color="#438C31" />
+                ) : (
+                  <Text style={styles.uploadButtonText}>{avatarUri ? 'Change' : 'Upload'}</Text>
+                )}
               </Pressable>
             </View>
 
@@ -188,11 +231,18 @@ export default function ProfileSetupScreen({
             <Pressable
               style={({ pressed }) => [
                 styles.primaryButton,
-                pressed && styles.pressed,
+                isSaving && { opacity: 0.65 },
+                pressed && !isSaving && styles.pressed,
               ]}
               onPress={handleContinue}
+              disabled={isSaving}
+              accessibilityState={{ disabled: isSaving }}
             >
-              <Text style={styles.primaryButtonText}>Continue</Text>
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Continue</Text>
+              )}
             </Pressable>
           </View>
         </ScrollView>

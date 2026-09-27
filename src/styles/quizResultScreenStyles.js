@@ -50,44 +50,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  scoreCircle: {
-    width: 184,
-    height: 184,
-    borderWidth: 11,
-    borderColor: '#76C457',
-    borderLeftColor: '#DCEBD5',
-    borderRadius: 92,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-
-  scoreValue: {
+  quizName: {
     color: '#151A15',
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
-    letterSpacing: -0.7,
-  },
-
-  scoreLabel: {
-    marginTop: 4,
-    color: '#697269',
-    fontSize: 12,
-  },
-
-  resultTitle: {
-    marginTop: 21,
-    color: '#151A15',
-    fontSize: 24,
+    fontSize: 22,
     lineHeight: 29,
     fontWeight: '800',
     textAlign: 'center',
-    letterSpacing: -0.4,
+  },
+
+  scoreSummary: {
+    color: '#438C31',
+    marginTop: 18,
+    fontSize: 36,
+    lineHeight: 43,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    fontVariant: ['tabular-nums'],
+  },
+
+  scoreLabel: {
+    marginTop: 2,
+    color: '#697269',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
   },
 
   resultCopy: {
-    marginTop: 5,
+    marginTop: 12,
     color: '#697269',
     fontSize: 13,
   },
@@ -142,41 +132,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  insightCard: {
+  saveErrorCard: {
     marginTop: 13,
     padding: 14,
-    flexDirection: 'row',
-    gap: 11,
     borderWidth: 1,
-    borderColor: '#B8D5AE',
+    borderColor: '#E7B5B5',
     borderRadius: 15,
-    backgroundColor: '#F7FCF4',
+    backgroundColor: '#FFF8F8',
   },
 
-  insightIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EAF6E4',
-  },
-
-  insightCopy: {
-    flex: 1,
-  },
-
-  insightTitle: {
-    color: '#438C31',
-    fontSize: 13,
+  saveErrorTitle: {
+    color: '#C45858',
+    fontSize: 14,
     fontWeight: '800',
   },
 
-  insightText: {
-    marginTop: 4,
+  saveErrorCopy: {
+    marginTop: 5,
     color: '#697269',
     fontSize: 12,
     lineHeight: 18,
+  },
+
+  retrySaveButton: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    marginTop: 11,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: '#C45858',
+  },
+
+  retrySaveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   primaryButton: {

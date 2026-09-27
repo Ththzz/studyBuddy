@@ -20,15 +20,22 @@ const ICON_PATHS = {
   chevron: 'm9 6 6 6-6 6',
   spark: 'm12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3Z M19 16l.6 2.4L22 19l-2.4.6L19 22l-.6-2.4L16 19l2.4-.6L19 16Z',
   search: 'm21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4Z',
+  send: 'm21 3-7.2 18-3.5-7.3L3 10.2 21 3Z M10.3 13.7 21 3',
+  edit: 'M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4',
+  trash: 'M5 7h14M10 11v6M14 11v6M9 7V4h6v3m-9 0 1 13h10l1-13',
+  user: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+  settings: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM12 3v2m0 14v2M4.2 4.2l1.4 1.4m12.8 12.8 1.4 1.4M2 12h2m16 0h2M4.2 19.8l1.4-1.4m14-14-1.4 1.4',
 };
 
 export default function LineIcon({
   name,
   size = 20,
   color = '#438C31',
+  fill = 'none',
   strokeWidth = 1.8,
 }) {
   const path = ICON_PATHS[name];
+  const isFilled = fill !== 'none';
 
   if (!path) {
     return null;
@@ -45,8 +52,9 @@ export default function LineIcon({
     >
       <Path
         d={path}
-        stroke={color}
-        strokeWidth={strokeWidth}
+        fill={fill}
+        stroke={isFilled ? 'none' : color}
+        strokeWidth={isFilled ? 0 : strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
       />

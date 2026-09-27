@@ -2,7 +2,7 @@
 
 ## โปรเจกต์นี้คืออะไร
 
-`studyBuddy` คือแอปมือถือสำหรับช่วยจัดการการอ่านหนังสือและติดตามเวลาที่ตั้งใจเรียน โดยตั้งเป้ารันบน iOS และ Android ในรูปแบบแอปแนว Study Buddy ปัจจุบันโปรเจกต์นี้เป็น **frontend prototype/MVP** ที่เน้นหน้าจอและ flow การใช้งานก่อน ยังไม่ใช่ระบบ production ที่เชื่อมต่อ backend จริง
+`studyBuddy` คือแอปมือถือสำหรับช่วยจัดการการอ่านหนังสือและติดตามเวลาที่ตั้งใจเรียนบน iOS และ Android แอปใช้ Supabase Auth, Postgres, RLS และ Storage สำหรับข้อมูลผู้ใช้ ส่วน local Node middleware ใช้สร้าง Quiz, Flashcards และ Q&A ผ่าน OpenAI-compatible endpoint ของ PSU AI (`https://ai.psu.blue/v1`) เมื่อกำหนด server environment แล้ว
 
 ขอบเขตที่มีอยู่จริงใน checkout นี้:
 
@@ -10,31 +10,37 @@
 - Home dashboard แสดงเป้าหมายและสรุปการเรียนของวันนี้
 - Focus Study Timer แบบ Countdown และ Stopwatch
 - Session Complete หลังจบหรือกดจบ session
-- Study History ที่อ่านและบันทึกประวัติ session ในเครื่อง
-- จุดเริ่มต้นสำหรับ Quiz, Flashcards, Quick Q&A และ Analytics บน Home แต่หน้าปลายทางเหล่านี้ยังไม่ได้ทำงานจริง
+- Study History ที่บันทึกและอ่าน study sessions ตามบัญชีจาก Supabase พร้อม import ประวัติ AsyncStorage เดิมแบบครั้งเดียว
+- Generate Quiz รับไฟล์ PDF/DOCX/TXT หรือรูป และส่งผ่าน middleware เพื่อสร้าง Multiple Choice, Flashcards หรือ Q&A
+- Flashcards เปิดดู deck ที่สร้างจาก AI หรือสร้าง deck/บัตรด้วยตนเองได้ และบันทึก deck/review ตามบัญชี
+- Quick Q&A ใช้ middleware ประเมินคำตอบ; Q&A ที่สร้างจาก Generate Quiz บันทึกชุดคำถามและผลตอบตามบัญชี
+- Home แสดง session วันนี้, streak และ Quiz average จากข้อมูลจริง; notification และบาง Account settings ยังเป็น prototype
 
 อย่าสับสน checkout นี้กับ Study Buddy เวอร์ชันเว็บ/Vanilla ที่เป็น prototype แยกกัน การแก้ไขในโปรเจกต์นี้ต้องยึดไฟล์และ dependencies ที่อยู่ในโฟลเดอร์ปัจจุบันเป็นหลัก
 
 ## สถานะความสามารถปัจจุบัน
 
-### มีการทำงานจริงในระดับ frontend/local
+### มีการทำงานจริง
 
 - `App.js` คุม state หลักและเปลี่ยนหน้าด้วยค่า `currentScreen` แบบ manual state routing
 - Flow หลักคือ `Welcome -> Sign Up -> Verification -> Profile -> Goal -> Setup Complete -> Home`
-- ผู้ใช้เข้าทาง Login แล้วไป Home ได้ แต่เป็น flow จำลองใน frontend
+- Sign up, email OTP verification, login, session restore และ sign out ใช้ Supabase Auth
 - จาก Home ไป `Timer -> Session Complete -> Home` ได้
 - จาก Home ไป `Study History -> Home` ได้
 - Timer รองรับ Countdown, Stopwatch, preset 25/45/60 นาที, custom duration แบบชั่วโมง/นาที/วินาที, Start, Pause, Resume และ End Session
-- Session ที่จบจะถูกเก็บใน AsyncStorage และนำมาคำนวณ progress ของวันนี้กับหน้า Study History
+- Session ที่จบถูกเก็บใน Supabase และนำมาคำนวณ progress, Study History, Analytics และ Home
 - Setup Complete มี animation ที่ทำด้วย React Native `Animated`
+- Generate Quiz ส่ง multipart file upload ไป `middleware/`; middleware อ่าน PDF/DOCX/TXT หรือส่งรูปแบบ vision และเรียก `${AI_BASE_URL}/chat/completions`
+- Middleware สร้าง Multiple Choice, Flashcards และ Q&A โดยตรวจโครงสร้าง JSON ก่อนส่งกลับแอป และมี endpoint สำหรับประเมินคำตอบ Q&A
+- Profile, goals, subjects, sessions, generated study sets, Quiz attempts, Flashcard reviews และ generated Q&A attempts ใช้ Supabase ภายใต้ owner-only RLS
+- Avatar อยู่ใน Supabase Storage bucket `avatars`; database เก็บ path ไม่เก็บ Base64
+- API key อ่านจาก `middleware/.env` เท่านั้น; แอปอ่านเฉพาะ URL ของ middleware จาก `EXPO_PUBLIC_STUDY_API_URL`
 
 ### ยังไม่ใช่การทำงานจริงหรือยังเป็น placeholder
 
-- Sign up, Login, email verification, social login และ profile upload ยังไม่เชื่อม Auth หรือ API จริง
-- Notification, Take a Break, Quiz, Flashcards, Quick Q&A และ Analytics ยังไม่มีหน้าจอหรือ logic จริง
-- callback ของ quick actions หลายตัวใน `App.js` ใช้ `console.log` เป็น placeholder
-- ข้อมูลบางส่วนบน Home เช่น study streak, quiz average, subject cards และ progress รายวิชา ยังเป็นข้อมูล prototype/hard-coded ไม่ใช่ข้อมูลจาก backend
-- ยังไม่มี Supabase client, database, RLS, document upload, AI generation หรือระบบผู้ใช้ถาวรในแอปปัจจุบัน
+- Google/Apple social login, forgot password, notification persistence, Take a Break, Appearance และ Privacy settings ยังเป็น placeholder
+- Q&A ตัวอย่างที่เปิดจาก Home เป็น local practice; เฉพาะ Q&A ที่สร้างจากเอกสารจึงมี question ID และบันทึก attempt ได้
+- middleware ยังใช้สำหรับ local development และไม่มี request authentication ของตัวเอง แม้ mobile app จะมี Supabase Auth แล้ว; default bind เป็น `127.0.0.1` และห้ามเปิด public network/deploy จนเพิ่ม token verification, production rate limits และ HTTPS hosting
 
 ## โครงสร้างและสถาปัตยกรรม
 
@@ -43,7 +49,9 @@
 - `src/screens/` เก็บ screen component แต่ละหน้า โดยหน้ารับข้อมูลและ callback จาก `App.js`
 - `src/styles/` เก็บ `StyleSheet` แยกตาม screen ไม่ควรย้าย style ทั้งหมดไปรวมโดยไม่จำเป็น
 - `src/components/lineIcon.js` เป็นชุด line icon ที่ใช้ร่วมกันและวาดด้วย `react-native-svg`
-- `src/storage/studySessionStorage.js` เป็นชั้น persistence ของ study sessions ผ่าน `@react-native-async-storage/async-storage`
+- `src/services/studySessionService.js` เป็นชั้น persistence ของ study sessions ผ่าน Supabase; `src/storage/studySessionStorage.js` เก็บเฉพาะ legacy migration lock/data
+- `src/services/studyAiClient.js` เป็น client สำหรับเรียก middleware โดยไม่ถือ provider secret
+- `middleware/` เป็น Node/Express middleware, file extraction และ OpenAI-compatible client; เก็บค่าจริงใน `middleware/.env` ซึ่งต้องไม่ commit
 - `assets/` เก็บ app icon, adaptive icon, favicon และ splash asset
 - ไม่มี React Navigation ในปัจจุบัน จึงไม่ควรเพิ่มหรือย้ายไปใช้ navigation library โดยพลการ
 
@@ -56,13 +64,18 @@ welcome
 
 home -> timer -> session-complete -> home
 home -> study-history -> home
+home -> quiz-upload -> middleware -> quiz-session -> quiz-result
+                              ├── Flashcards -> study-cards -> flashcards
+                              └── Q&A -> quick-qa -> home
+home -> flashcards -> create-flashcards -> flashcards
+home -> quick-qa -> middleware evaluation -> home
 ```
 
 เมื่อเพิ่มหน้าใหม่ต้องเชื่อม route และ callback ใน `App.js` ให้ครบก่อน และต้องตรวจสอบว่า Back/Done/Finish พากลับไปหน้าที่ถูกต้อง
 
 ## Data contract ที่ต้องรักษา
 
-Study session ที่ `App.js` บันทึกลง local storage มี field หลักดังนี้:
+Study session ที่ `App.js` และ `studySessionService` ใช้มี field หลักดังนี้:
 
 ```js
 {
@@ -75,7 +88,7 @@ Study session ที่ `App.js` บันทึกลง local storage มี f
 }
 ```
 
-- Storage key ปัจจุบันคือ `@studybuddy/study-sessions`
+- Storage key `@studybuddy/study-sessions` เป็น legacy data สำหรับ import ครั้งเดียวเท่านั้น
 - `durationSeconds` ต้องเป็นจำนวนวินาทีที่ไม่ติดลบ
 - `completedAt` ใช้คำนวณ session ของวันนี้และจัดกลุ่มใน Study History
 - `sessionResult` ที่ส่งไปหน้า Session Complete อาจมี `dailyProgressLabel` และ `dailyGoalCompleted` เพิ่มเติม แต่สอง field นี้ไม่ใช่ field หลักที่บันทึกใน storage
@@ -90,8 +103,10 @@ Study session ที่ `App.js` บันทึกลง local storage มี f
 5. ถ้าเป็นงาน UI ให้แก้ screen กับ style ที่เกี่ยวข้องเป็นคู่ และตรวจสอบ import/file casing ให้ตรงกับชื่อจริง เช่น `studyTimeScreen.js` และ `studyTimerScreenStyles.js`
 6. อย่าอ้างว่า Auth, backend, AI หรือฟีเจอร์ quick action ทำงานแล้ว หากยังมีเพียง `console.log` หรือ mock data
 7. ก่อนเพิ่ม Supabase หรือ API ให้แยก client/public configuration ออกจาก secret และห้ามใส่ service-role key, private key, password, access token หรือ API secret ใน mobile bundle
-8. `.env.example` มีตัวแปร `EXPO_PUBLIC_SUPABASE_URL` และ `EXPO_PUBLIC_SUPABASE_ANON_KEY` ไว้สำหรับ integration ในอนาคตเท่านั้น ค่า `EXPO_PUBLIC_*` อ่านได้จากแอปที่ build แล้ว และห้าม commit `.env.local`
-9. การ export สำเร็จยืนยันได้เฉพาะการ bundle ไม่ได้ยืนยัน gesture, timer lifecycle, layout หรือการทำงานบนเครื่องจริง ต้องระบุสิ่งที่ยังไม่ได้ทดสอบ
+8. Root `.env.example` เก็บเฉพาะ URL ของ middleware ฝั่ง Expo (`EXPO_PUBLIC_STUDY_API_URL`) และค่าตัวอย่าง Supabase; ค่า `EXPO_PUBLIC_*` อ่านได้จากแอปที่ build แล้ว ห้ามใส่ AI API key ในตัวแปรเหล่านี้หรือ commit `.env.local`
+9. `middleware/.env.example` ระบุ `AI_BASE_URL`, `AI_MODEL` และช่อง `AI_API_KEY`; คัดลอกเป็น `middleware/.env` แล้วใส่ credential ในเครื่องเท่านั้น ห้าม commit `middleware/.env`
+10. Middleware default bind ที่ `127.0.0.1` และยังไม่มี request authentication ของตัวเอง; อย่าเปิด public network หรือ deploy จนกว่าจะตรวจ Supabase token, เพิ่ม rate limits และการป้องกัน abuse
+11. การ export สำเร็จยืนยันได้เฉพาะการ bundle ไม่ได้ยืนยัน gesture, timer lifecycle, layout หรือการทำงานบนเครื่องจริง ต้องระบุสิ่งที่ยังไม่ได้ทดสอบ
 
 ## คำสั่งตรวจสอบที่เหมาะกับโปรเจกต์นี้
 
@@ -99,8 +114,10 @@ Study session ที่ `App.js` บันทึกลง local storage มี f
 
 ```sh
 npm install
+npm --prefix middleware install
 npx expo config --json
-npx expo start
+npm run api
+npm start
 ```
 
 สำหรับตรวจการ bundle โดยไม่อ้างว่าเป็นการทดสอบ UI จริง:
